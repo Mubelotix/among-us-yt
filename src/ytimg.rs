@@ -152,7 +152,7 @@ pub struct Image {
     data: Vec<u8>,
     is_council: bool,
     pub bright_map: bool,
-    pub imposter_objective: bool,
+    pub impostor_objective: bool,
     base64: String,
 }
 
@@ -162,12 +162,13 @@ impl Image {
             data,
             is_council: false,
             bright_map: false,
-            imposter_objective: false,
+            impostor_objective: false,
             base64: String::new(),
         };
 
         image.is_council = image.does_pixel_match(70, 16, 0xbbd2e6, 30);
         image.bright_map = image.does_pixel_match(153, 14, 0xd3d9da, 20) && image.does_pixel_match(153, 17, 0x2e3436, 20); // TODO add points
+        image.impostor_objective = image.does_pixels_mean_match(1..39, 12..13, 0x51252b, 20);
 
         use image::{ImageBuffer, RgbImage};
         let mut img: RgbImage = ImageBuffer::new(160, 90);
@@ -190,15 +191,45 @@ impl Image {
         image
     }
 
-    pub fn get_pixel(&self, x: usize, y: usize) -> (u8, u8, u8) {
+    pub fn get_pixel(&self, x: u8, y: u8) -> (u8, u8, u8) {
         (
-            self.data[y * 4 * 160 + x * 4],
-            self.data[y * 4 * 160 + x * 4 + 1],
-            self.data[y * 4 * 160 + x * 4 + 2],
+            self.data[y as usize * 4 * 160 + x as usize * 4],
+            self.data[y as usize * 4 * 160 + x as usize * 4 + 1],
+            self.data[y as usize * 4 * 160 + x as usize * 4 + 2],
         )
     }
 
-    pub fn does_pixel_match(&self, x: usize, y: usize, expected: u32, tolerance: u8) -> bool {
+    pub fn get_pixels_mean(&self, x_range: std::ops::Range<u8>, y_range: std::ops::Range<u8>) -> (u8, u8, u8) {
+        let mut r: u64 = 0;
+        let mut g: u64 = 0;
+        let mut b: u64 = 0;
+
+        for x in x_range.clone() {
+            for y in y_range.clone() {
+                let (r2, g2, b2) = self.get_pixel(x, y);
+                r += r2 as u64;
+                g += g2 as u64;
+                b += b2 as u64;
+            }
+        }
+
+        let number = (x_range.end - x_range.start) as u64 * (y_range.end - y_range.start) as u64;
+        r /= number;
+        g /= number;
+        b /= number;
+
+        (r as u8, g as u8, b as u8)
+    }
+
+    pub fn does_pixels_mean_match(&self, x_range: std::ops::Range<u8>, y_range: std::ops::Range<u8>, expected: u32, tolerance: u8) -> bool {
+        let [_, expected_r, expected_g, expected_b] = expected.to_be_bytes();
+        let got = self.get_pixels_mean(x_range, y_range);
+        std::cmp::max(got.0, expected_r) - std::cmp::min(got.0, expected_r) <= tolerance
+            && std::cmp::max(got.1, expected_g) - std::cmp::min(got.1, expected_g) <= tolerance
+            && std::cmp::max(got.2, expected_b) - std::cmp::min(got.2, expected_b) <= tolerance
+    }
+
+    pub fn does_pixel_match(&self, x: u8, y: u8, expected: u32, tolerance: u8) -> bool {
         let [_, expected_r, expected_g, expected_b] = expected.to_be_bytes();
         let got = self.get_pixel(x, y);
         std::cmp::max(got.0, expected_r) - std::cmp::min(got.0, expected_r) <= tolerance
