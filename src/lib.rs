@@ -36,13 +36,13 @@ pub async fn get_images() -> Vec<ytimg::Image> {
 
     use maud::Render;
 
-    let selection = [7,32,33,53,55,56,57];
+    let selection = [29,51,52,79,98,99];
     let mut r: u64 = 0;
     let mut g: u64 = 0;
     let mut b: u64 = 0;
     for (idx, image) in images.iter().enumerate() {
         if selection.contains(&idx) {
-            let (r2, g2, b2) = image.get_pixels_mean(24..29, 9..14);
+            let (r2, g2, b2) = image.get_pixels_mean(10..15, 9..15);
             r += r2 as u64;
             g += g2 as u64;
             b += b2 as u64;
@@ -124,7 +124,7 @@ pub async fn get_images() -> Vec<ytimg::Image> {
                                 td {"open map"}
                                 td
                                     boolean_value=(image.open_map)
-                                    title=(format!("Mean of 24..29,9..14 = {:?}", image.get_pixels_mean(24..29, 9..14)))
+                                    title=(format!("Mean of 24..29,9..14 = {:?}\nMean of 10..15,9..15 = {:?}", image.get_pixels_mean(24..29, 9..14), image.get_pixels_mean(10..15, 9..15)))
                                     {(image.open_map)}
                             }
                             tr {

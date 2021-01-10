@@ -171,7 +171,7 @@ impl Image {
         image.is_council = image.does_pixel_match(70, 16, 0xbbd2e6, 30);
         image.bright_map = !image.is_council && image.does_pixel_match(153, 14, 0xd3d9da, 20) && image.does_pixel_match(153, 17, 0x2e3436, 20); // TODO add points
         image.impostor_objective = !image.is_council && image.does_pixels_mean_match(1..39, 12..13, 0x51252b, 20);
-        image.open_map = !image.is_council && image.does_pixels_mean_match(24..29, 9..14, 0xbdc0c4, 20);
+        image.open_map = image.bright_map && (image.does_pixels_mean_match(24..29, 9..14, 0xbdc0c4, 20) || image.does_pixels_mean_match(10..15, 9..15, 0xb9bfbe, 20));
 
         use image::{ImageBuffer, RgbImage};
         let mut img: RgbImage = ImageBuffer::new(160, 90);
