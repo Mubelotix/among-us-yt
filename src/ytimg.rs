@@ -153,6 +153,7 @@ pub struct Image {
     is_council: bool,
     pub bright_map: bool,
     pub impostor_objective: bool,
+    pub open_map: bool,
     base64: String,
 }
 
@@ -163,12 +164,14 @@ impl Image {
             is_council: false,
             bright_map: false,
             impostor_objective: false,
+            open_map: false,
             base64: String::new(),
         };
 
         image.is_council = image.does_pixel_match(70, 16, 0xbbd2e6, 30);
-        image.bright_map = image.does_pixel_match(153, 14, 0xd3d9da, 20) && image.does_pixel_match(153, 17, 0x2e3436, 20); // TODO add points
-        image.impostor_objective = image.does_pixels_mean_match(1..39, 12..13, 0x51252b, 20);
+        image.bright_map = !image.is_council && image.does_pixel_match(153, 14, 0xd3d9da, 20) && image.does_pixel_match(153, 17, 0x2e3436, 20); // TODO add points
+        image.impostor_objective = !image.is_council && image.does_pixels_mean_match(1..39, 12..13, 0x51252b, 20);
+        image.open_map = !image.is_council && image.does_pixels_mean_match(24..29, 9..14, 0xbdc0c4, 20);
 
         use image::{ImageBuffer, RgbImage};
         let mut img: RgbImage = ImageBuffer::new(160, 90);
