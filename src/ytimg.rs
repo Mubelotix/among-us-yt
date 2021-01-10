@@ -151,6 +151,8 @@ pub fn parse_value(data: String) -> Result<Vec<Endpoint>, &'static str> {
 pub struct Image {
     data: Vec<u8>,
     is_council: bool,
+    pub bright_map: bool,
+    pub imposter_objective: bool,
     base64: String,
 }
 
@@ -159,10 +161,13 @@ impl Image {
         let mut image = Image {
             data,
             is_council: false,
+            bright_map: false,
+            imposter_objective: false,
             base64: String::new(),
         };
 
-        image.is_council = image.does_pixel_match(75, 16, 0xbbd2e6, 30);
+        image.is_council = image.does_pixel_match(70, 16, 0xbbd2e6, 30);
+        image.bright_map = image.does_pixel_match(153, 14, 0xd3d9da, 20) && image.does_pixel_match(153, 17, 0x2e3436, 20); // TODO add points
 
         use image::{ImageBuffer, RgbImage};
         let mut img: RgbImage = ImageBuffer::new(160, 90);
@@ -173,6 +178,8 @@ impl Image {
             }
         }
         img.put_pixel(75, 16, image::Rgb([255, 0, 0]));
+        img.put_pixel(153, 14, image::Rgb([255, 0, 0]));
+        img.put_pixel(153, 17, image::Rgb([255, 0, 0]));
         let mut output = Vec::new();
         let encoder = image::codecs::png::PngEncoder::new(&mut output);
         encoder

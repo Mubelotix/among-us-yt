@@ -91,7 +91,18 @@ pub async fn get_images() -> Vec<ytimg::Image> {
                         img.preview_image src=(format!("data:image/png;base64, {}", image.base64())) {}
                         table {
                             tr { td {"index"} td {(idx)} }
-                            tr { td {"council"} td boolean_value=(image.is_council()) {(image.is_council())} }
+                            tr {
+                                td {"council"}
+                                td boolean_value=(image.is_council())
+                                    title=(format!("Middle pixel at 70,16 = {:?}", image.get_pixel(70, 16)))
+                                    {(image.is_council())} }
+                            tr {
+                                td {"bright map"}
+                                td
+                                    boolean_value=(image.bright_map)
+                                    title=(format!("Upper pixel at 153,14 = {:?}\nMiddle pixel at 153,17 = {:?}", image.get_pixel(153, 14), image.get_pixel(153, 17)))
+                                    {(image.bright_map)}
+                            }
                         }
                     }
                 }
@@ -99,7 +110,8 @@ pub async fn get_images() -> Vec<ytimg::Image> {
         }
     };
 
-    log!("{} ", html.into_string());
+    let window = window().unwrap().open_with_url("about:blank").unwrap().unwrap();
+    window.document().unwrap().dyn_into::<HtmlDocument>().unwrap().write_1(&html.into_string()).unwrap();
 
     images
 }
