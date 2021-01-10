@@ -12,10 +12,10 @@ pub struct Endpoint {
 
 impl Endpoint {
     pub async fn get_image(&self, n: usize) -> Result<Vec<Image>, &'static str> {
+        use js_sys::Promise;
+        use wasm_bindgen::JsCast;
         use wasm_bindgen_futures::JsFuture;
         use web_sys::*;
-        use wasm_bindgen::JsCast;
-        use js_sys::Promise;
 
         let mut request: RequestInit = RequestInit::new();
         request.method("GET");
@@ -46,31 +46,53 @@ impl Endpoint {
 
         let blob: Blob = JsFuture::from(response.blob().unwrap())
             .await
-            .unwrap().dyn_into().unwrap();
+            .unwrap()
+            .dyn_into()
+            .unwrap();
 
-        let url = Url::create_object_url_with_blob(&blob).unwrap();
+        let url = Url::create_object_url_with_blob(&blob).unwrap(); // FIXME: revoke object url
         let document = window.document().unwrap();
         let img: HtmlImageElement = document.create_element("img").unwrap().dyn_into().unwrap();
         img.set_src(&url);
         JsFuture::from(Promise::new(&mut |yes, no| {
             img.add_event_listener_with_callback("load", &yes).unwrap();
             img.add_event_listener_with_callback("error", &no).unwrap();
-        })).await.unwrap();
+        }))
+        .await
+        .unwrap();
 
-        let canvas: HtmlCanvasElement = document.create_element("canvas").unwrap().dyn_into().unwrap();
+        let canvas: HtmlCanvasElement = document
+            .create_element("canvas")
+            .unwrap()
+            .dyn_into()
+            .unwrap();
         canvas.set_width(self.width as u32 * self.image_width as u32);
         canvas.set_height(self.height as u32 * self.image_height as u32);
         document.body().unwrap().append_child(&canvas).unwrap();
-        let context: CanvasRenderingContext2d = canvas.get_context("2d").unwrap().unwrap().dyn_into().unwrap();
-        context.draw_image_with_html_image_element(&img, 0.0, 0.0).unwrap();
+        let context: CanvasRenderingContext2d = canvas
+            .get_context("2d")
+            .unwrap()
+            .unwrap()
+            .dyn_into()
+            .unwrap();
+        context
+            .draw_image_with_html_image_element(&img, 0.0, 0.0)
+            .unwrap();
 
         let mut images = Vec::new();
 
         for y in 0..self.height {
             for x in 0..self.width {
-                let image_data: ImageData = context.get_image_data(x as f64 * self.image_width as f64, y as f64 * self.image_height as f64, self.image_width as f64, self.image_height as f64).unwrap();
+                let image_data: ImageData = context
+                    .get_image_data(
+                        x as f64 * self.image_width as f64,
+                        y as f64 * self.image_height as f64,
+                        self.image_width as f64,
+                        self.image_height as f64,
+                    )
+                    .unwrap();
                 let data: Vec<u8> = image_data.data().to_vec();
-                images.push(Image {data});
+                images.push(Image::new(data));
             }
         }
 
@@ -128,19 +150,60 @@ pub fn parse_value(data: String) -> Result<Vec<Endpoint>, &'static str> {
 
 pub struct Image {
     data: Vec<u8>,
+    is_council: bool,
+    base64: String,
 }
 
 impl Image {
+    pub fn new(data: Vec<u8>) -> Self {
+        let mut image = Image {
+            data,
+            is_council: false,
+            base64: String::new(),
+        };
+
+        image.is_council = image.does_pixel_match(75, 16, 0xbbd2e6, 30);
+
+        use image::{ImageBuffer, RgbImage};
+        let mut img: RgbImage = ImageBuffer::new(160, 90);
+        for x in 0..160 {
+            for y in 0..90 {
+                let (r, g, b) = image.get_pixel(x, y);
+                img.put_pixel(x as u32, y as u32, image::Rgb([r, g, b]));
+            }
+        }
+        img.put_pixel(75, 16, image::Rgb([255, 0, 0]));
+        let mut output = Vec::new();
+        let encoder = image::codecs::png::PngEncoder::new(&mut output);
+        encoder
+            .encode(&img, 160, 90, image::ColorType::Rgb8)
+            .unwrap();
+        image.base64 = base64::encode(output);
+
+        image
+    }
+
     pub fn get_pixel(&self, x: usize, y: usize) -> (u8, u8, u8) {
-        (self.data[y*4*160+x*4],self.data[y*4*160+x*4+1],self.data[y*4*160+x*4+2])
+        (
+            self.data[y * 4 * 160 + x * 4],
+            self.data[y * 4 * 160 + x * 4 + 1],
+            self.data[y * 4 * 160 + x * 4 + 2],
+        )
     }
 
     pub fn does_pixel_match(&self, x: usize, y: usize, expected: u32, tolerance: u8) -> bool {
         let [_, expected_r, expected_g, expected_b] = expected.to_be_bytes();
-        log!("{} {} {}", expected_r, expected_g, expected_b);
         let got = self.get_pixel(x, y);
-        std::cmp::max(got.0, expected_r) - std::cmp::min(got.0, expected_r) <= tolerance &&
-        std::cmp::max(got.1, expected_g) - std::cmp::min(got.1, expected_g) <= tolerance &&
-        std::cmp::max(got.2, expected_b) - std::cmp::min(got.2, expected_b) <= tolerance
+        std::cmp::max(got.0, expected_r) - std::cmp::min(got.0, expected_r) <= tolerance
+            && std::cmp::max(got.1, expected_g) - std::cmp::min(got.1, expected_g) <= tolerance
+            && std::cmp::max(got.2, expected_b) - std::cmp::min(got.2, expected_b) <= tolerance
+    }
+
+    pub fn is_council(&self) -> bool {
+        self.is_council
+    }
+
+    pub fn base64(&self) -> &str {
+        &self.base64
     }
 }
