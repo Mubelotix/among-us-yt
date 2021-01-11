@@ -56,7 +56,7 @@ pub async fn get_images() -> Vec<ytimg::Image> {
     for (idx, image) in images.iter().enumerate() {
         if image.is_game() && current_game_start.is_none() {
             current_game_start = Some(idx);
-        } else if image.victory_screen || image.game_settings {
+        } else if image.victory_screen || image.game_settings || image.defeat_screen {
             if let Some(start) = current_game_start {
                 games.push(start..idx);
                 current_game_start = None;
