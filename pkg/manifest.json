@@ -1,0 +1,21 @@
+{
+    "name": "among-us-yt",
+    "version": "1.0",
+    "description": "among-us-yt",
+    "content_scripts": [
+        {
+            "matches": [
+                "https://*.youtube.com/watch?*"
+            ],
+            "js": [
+                "inject_module.js"
+            ]
+        }
+    ],
+    "web_accessible_resources": [
+        "addon.js",
+        "run_wasm.js",
+        "addon_bg.wasm"
+    ],
+    "manifest_version": 2
+}

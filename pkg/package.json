@@ -1,0 +1,15 @@
+{
+  "name": "addon",
+  "collaborators": [
+    "Mubelotix <mubelotix@gmail.com>"
+  ],
+  "version": "0.1.0",
+  "files": [
+    "addon_bg.wasm",
+    "addon.js",
+    "addon.d.ts"
+  ],
+  "module": "addon.js",
+  "types": "addon.d.ts",
+  "sideEffects": false
+}
