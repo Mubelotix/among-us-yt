@@ -1,10 +1,12 @@
+use std::ops::AddAssign;
+
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::*;
 #[macro_use]
 mod util;
 mod ytimg;
 
-pub async fn get_images() -> Vec<std::ops::Range<usize>> {
+pub async fn get_images() -> (Vec<(std::ops::Range<usize>, bool)>, usize) {
     let document = window()
         .unwrap()
         .document()
@@ -52,19 +54,33 @@ pub async fn get_images() -> Vec<std::ops::Range<usize>> {
     log!("mean = {} {} {}", r, g, b);
 
     let mut games = Vec::new();
-    let mut current_game_start = None;
+    let mut current_game: Option<(usize, usize, usize)> = None;
     for (idx, image) in images.iter().enumerate() {
-        if image.is_game() && current_game_start.is_none() {
-            current_game_start = Some(idx);
+        if image.is_game() && current_game.is_none() {
+            current_game = Some((idx, 0, 1));
         } else if image.victory_screen || image.game_settings || image.defeat_screen {
-            if let Some(start) = current_game_start {
-                games.push(start..idx);
-                current_game_start = None;
+            if let Some((start, impostor_objectives_count, ingame_frames_count)) = current_game {
+                let ratio = impostor_objectives_count as f64 / ingame_frames_count as f64;
+                games.push((start..idx, ratio > 0.6));
+                current_game = None;
+            }
+        }
+
+        if let Some((_, impostor_objectives_count, _)) = &mut current_game {
+            if image.impostor_objective && !image.alert {
+                impostor_objectives_count.add_assign(1);
+            }
+        }
+
+        if let Some((_, _, ingame_frames_count)) = &mut current_game {
+            if image.is_game() && !image.open_map && !image.council && !image.alert {
+                ingame_frames_count.add_assign(1);
             }
         }
     }
-    if let Some(start) = current_game_start {
-        games.push(start..images.len());
+    if let Some((start, impostor_objectives_count, ingame_frames_count)) = current_game {
+        let ratio = impostor_objectives_count as f64 / ingame_frames_count as f64;
+        games.push((start..idx, ratio > 0.6));
     }
 
     let html = maud::html! {
@@ -206,7 +222,7 @@ pub async fn get_images() -> Vec<std::ops::Range<usize>> {
     let window = window().unwrap().open_with_url("about:blank").unwrap().unwrap();
     window.document().unwrap().dyn_into::<HtmlDocument>().unwrap().write_1(&html.into_string()).unwrap();
 
-    games
+    (games, images.len())
 }
 
 #[wasm_bindgen(start)]
@@ -215,25 +231,29 @@ pub async fn main() {
 
     log!("Hello World!");
 
-    //let images = get_images().await;
+    let (games, lenght) = get_images().await;
     let container = loop {
         match window().unwrap().document().unwrap().get_elements_by_class_name("ytp-progress-bar-padding").item(0) {
             Some(container) => break container,
             None => util::sleep(std::time::Duration::from_millis(200)).await,
         }
     };
+    let factor: f64 = 100.0 / lenght as f64;
 
     let html = maud::html! {
         style { (include_str!("integrated.css")) }
         #among_us_addon_chapters {
-            div.impostor_game style="width: calc(30% - 2px);" {
-                "Impostor"
-            }
-            div.crewmate_game style="width: calc(45% - 2px);" {
-                "Crewmate"
-            }
-            div.impostor_game style="width: calc(25% - 2px);" {
-                "Impostor"
+            @for (game, is_impostor) in games.iter() {
+                @if *is_impostor {
+                    div.impostor_game style=(format!("left: {}%; width: {}%;", game.start as f64 * factor, (game.end - game.start) as f64 * factor)) {
+                        "Impostor"
+                    }
+                } @else {
+                    div.crewmate_game style=(format!("left: {}%; width: {}%;", game.start as f64 * factor, (game.end - game.start) as f64 * factor)) {
+                        "Crewmate"
+                    }
+                }
+
             }
         }
     };

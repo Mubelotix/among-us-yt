@@ -6,13 +6,13 @@
 }
 
 .impostor_game, .crewmate_game {
-    margin: 0 1px;
     height: calc(2rem + 4px);
     padding: 2px 5px;
     /*border-radius: 4px 4px 0 0;*/
     font-family: monospace;
     font-size: 2rem;
     line-height: calc(2rem + 4px);
+    position: absolute;
 }
 
 .impostor_game {
