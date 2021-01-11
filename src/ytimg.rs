@@ -157,6 +157,7 @@ pub struct Image {
     pub game_settings: bool,
     pub victory_screen: bool,
     pub alert: bool,
+    pub progress_bar: bool,
     base64: String,
 }
 
@@ -171,6 +172,7 @@ impl Image {
             game_settings: false,
             victory_screen: false,
             alert: false,
+            progress_bar: false,
             base64: String::new(),
         };
 
@@ -197,6 +199,7 @@ impl Image {
                 false
             }
         };
+        image.progress_bar = !image.council && (image.does_pixels_mean_match(2..12, 3..6, 0x72a072, 10) || image.does_pixels_mean_match(64..71, 3..6, 0x353d38, 10));
 
         use image::{ImageBuffer, RgbImage};
         let mut img: RgbImage = ImageBuffer::new(160, 90);
@@ -264,5 +267,9 @@ impl Image {
 
     pub fn base64(&self) -> &str {
         &self.base64
+    }
+
+    pub fn is_game(&self) -> bool {
+        self.bright_map || self.council || self.alert || self.progress_bar
     }
 }

@@ -33,14 +33,14 @@ pub async fn get_images() -> Vec<ytimg::Image> {
         images.append(&mut new_images);
         n += 1;
     }
-    
-    let selection = [15,16,17,18,19,20,21,22,23,24,25,26,36,37,39,40,41,42,43,44,45,46,47,48,49,56,57,58,59,60,61,62,63,64,65,66,67,68,94,95,96,97,98,99,100,101,102,103,104,105,106,115,123,124,125,126,127,128,139,140,141,142,143,144,145,146,147,148,149,150,151,152]; // https://www.youtube.com/watch?v=BTQcPQ03n3I&ab_channel=DomingoReplay
+
+    let selection = [109,110,111,112,113,114,130,131,132,133,134,135,136,137,138,154,155,171,185,186,187,188,189,190,213,214,215,232,233,234,235,236,237,238]; // https://www.youtube.com/watch?v=BTQcPQ03n3I&ab_channel=DomingoReplay
     let mut r: u64 = 0;
     let mut g: u64 = 0;
     let mut b: u64 = 0;
     for (idx, image) in images.iter().enumerate() {
         if selection.contains(&idx) {
-            let (r2, g2, b2) = image.get_pixels_mean(28..74, 16..17);
+            let (r2, g2, b2) = image.get_pixels_mean(64..71, 3..6);
             r += r2 as u64;
             g += g2 as u64;
             b += b2 as u64;
@@ -107,6 +107,11 @@ pub async fn get_images() -> Vec<ytimg::Image> {
                         table {
                             tr { td {"index"} td {(idx)} }
                             tr {
+                                td {"game"}
+                                td boolean_value=(image.is_game())
+                                    title="See below"
+                                    {(image.is_game())} }
+                            tr {
                                 td {"council"}
                                 td boolean_value=(image.council)
                                     title=(format!("Mean of 28..74,16..17 = {:?}", image.get_pixels_mean(28..74, 16..17)))
@@ -152,6 +157,13 @@ pub async fn get_images() -> Vec<ytimg::Image> {
                                     boolean_value=(image.alert)
                                     title=(format!("Mean of 0..160,0..30 = {:?}\nMean of 0..160,30..60 = {:?}\nMean of 0..160,60..90 = {:?}", image.get_pixels_mean(0..160, 0..30), image.get_pixels_mean(0..160, 30..60), image.get_pixels_mean(0..160, 60..90)))
                                     {(image.alert)}
+                            }
+                            tr {
+                                td {"progress bar"}
+                                td
+                                    boolean_value=(image.progress_bar)
+                                    title=(format!("Mean of 2..12,3..6 = {:?}\nMean of 64..71,3..6 = {:?}", image.get_pixels_mean(2..12, 3..6), image.get_pixels_mean(64..71, 3..6)))
+                                    {(image.progress_bar)}
                             }
                         }
                     }
