@@ -183,13 +183,13 @@ impl Image {
         image.alert = {
             let (r,g,b) = image.get_pixels_mean(0..160, 0..30);
             let diff = r as i32 - (g as i32 + b as i32);
-            if r >= 110 && (std::cmp::max(diff, -diff) < 40) {
+            if r >= 110 && diff > -40 {
                 let (r,g,b) = image.get_pixels_mean(0..160, 30..60);
                 let diff = r as i32 - (g as i32 + b as i32);
-                if r >= 110 && (std::cmp::max(diff, -diff) < 40) {
+                if r >= 110 && diff > -40 {
                     let (r,g,b) = image.get_pixels_mean(0..160, 60..90);
                     let diff = r as i32 - (g as i32 + b as i32);
-                    r >= 110 && (std::cmp::max(diff, -diff) < 40)
+                    r >= 110 && diff > -40
                 } else {
                     false
                 }

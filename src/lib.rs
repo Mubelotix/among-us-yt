@@ -111,7 +111,7 @@ pub async fn get_images() -> Vec<ytimg::Image> {
                             tr {
                                 td {"council"}
                                 td boolean_value=(image.is_council())
-                                    title=(format!("Middle pixel at 70,16 = {:?}", image.get_pixel(70, 16)))
+                                    title=(format!("Mean of 28..74,16..17 = {:?}", image.get_pixels_mean(28..74, 16..17)))
                                     {(image.is_council())} }
                             tr {
                                 td {"bright map"}
