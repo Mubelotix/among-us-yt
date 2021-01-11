@@ -34,13 +34,13 @@ pub async fn get_images() -> Vec<ytimg::Image> {
         n += 1;
     }
 
-    let selection = [15,16,17,18,19,20,21,22,23,24,25,26,36,37,39,40,41,42,43,44,45,46,47,48,49,56,57,58,59,60,61,62,63,64,65,66,67,68,94,95,96,97,98,99,100,101,102,103,104,105,106,115,123,124,125,126,127,128,139,140,141,142,143,144,145,146,147,148,149,150,151,152]; // https://www.youtube.com/watch?v=BTQcPQ03n3I&ab_channel=DomingoReplay
+    let selection = [112,113,114,115,116,117,247,248,249,250,335,336,337]; // https://www.youtube.com/watch?v=kofC4k2tm68&ab_channel=DomingoReplay
     let mut r: u64 = 0;
     let mut g: u64 = 0;
     let mut b: u64 = 0;
     for (idx, image) in images.iter().enumerate() {
         if selection.contains(&idx) {
-            let (r2, g2, b2) = image.get_pixels_mean(64..71, 2..3);
+            let (r2, g2, b2) = image.get_pixels_mean(40..120, 25..41);
             r += r2 as u64;
             g += g2 as u64;
             b += b2 as u64;
@@ -171,6 +171,13 @@ pub async fn get_images() -> Vec<ytimg::Image> {
                                     boolean_value=(image.victory_screen)
                                     title=(format!("Mean of 49..111,12..21 = {:?}\nMean of 40..120,25..41 = {:?}", image.get_pixels_mean(49..111, 12..21), image.get_pixels_mean(40..120, 25..41)))
                                     {(image.victory_screen)}
+                            }
+                            tr {
+                                td {"defeat screen"}
+                                td
+                                    boolean_value=(image.defeat_screen)
+                                    title=(format!("Mean of 53..105,9..23 = {:?}\nMean of 40..120,25..41 = {:?}", image.get_pixels_mean(53..105, 9..23), image.get_pixels_mean(40..120, 25..41)))
+                                    {(image.defeat_screen)}
                             }
                             tr {
                                 td {"alert"}
