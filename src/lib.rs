@@ -94,6 +94,7 @@ pub async fn get_images() -> (Vec<(std::ops::Range<usize>, bool)>, usize) {
         games.push((start..idx, ratio > 0.6));
     }
 
+    #[cfg(feature="debugging")]
     let html = maud::html! {
         head {
             title { "Video Analys Report" }
@@ -230,8 +231,8 @@ pub async fn get_images() -> (Vec<(std::ops::Range<usize>, bool)>, usize) {
         }
     };
 
-    let window = window().unwrap().open_with_url("about:blank").unwrap().unwrap();
-    window.document().unwrap().dyn_into::<HtmlDocument>().unwrap().write_1(&html.into_string()).unwrap();
+    #[cfg(feature="debugging")]
+    window().unwrap().open_with_url("about:blank").unwrap().unwrap().document().unwrap().dyn_into::<HtmlDocument>().unwrap().write_1(&html.into_string()).unwrap();
 
     (games, images.len())
 }

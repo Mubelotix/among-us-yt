@@ -159,6 +159,7 @@ pub struct Image {
     pub defeat_screen: bool,
     pub alert: bool,
     pub progress_bar: bool,
+    #[cfg(feature="debugging")]
     base64: String,
 }
 
@@ -175,6 +176,7 @@ impl Image {
             defeat_screen: false,
             alert: false,
             progress_bar: false,
+            #[cfg(feature="debugging")]
             base64: String::new(),
         };
 
@@ -204,20 +206,23 @@ impl Image {
         image.victory_screen = !image.is_game() && image.does_pixels_mean_match(49..111, 12..21, 0x163150, 10) && image.does_pixels_mean_match(40..120, 25..41, 0x000000, 10);
         image.defeat_screen = !image.is_game() && image.does_pixels_mean_match(53..105, 9..23, 0x470c10, 10) && image.does_pixels_mean_match(40..120, 25..41, 0x090807, 10);
 
-        use image::{ImageBuffer, RgbImage};
-        let mut img: RgbImage = ImageBuffer::new(160, 90);
-        for x in 0..160 {
-            for y in 0..90 {
-                let (r, g, b) = image.get_pixel(x, y);
-                img.put_pixel(x as u32, y as u32, image::Rgb([r, g, b]));
+        #[cfg(feature="debugging")]
+        {
+            use image::{ImageBuffer, RgbImage};
+            let mut img: RgbImage = ImageBuffer::new(160, 90);
+            for x in 0..160 {
+                for y in 0..90 {
+                    let (r, g, b) = image.get_pixel(x, y);
+                    img.put_pixel(x as u32, y as u32, image::Rgb([r, g, b]));
+                }
             }
+            let mut output = Vec::new();
+            let encoder = image::codecs::png::PngEncoder::new(&mut output);
+            encoder
+                .encode(&img, 160, 90, image::ColorType::Rgb8)
+                .unwrap();
+            image.base64 = base64::encode(output);
         }
-        let mut output = Vec::new();
-        let encoder = image::codecs::png::PngEncoder::new(&mut output);
-        encoder
-            .encode(&img, 160, 90, image::ColorType::Rgb8)
-            .unwrap();
-        image.base64 = base64::encode(output);
 
         image
     }
@@ -268,6 +273,7 @@ impl Image {
             && std::cmp::max(got.2, expected_b) - std::cmp::min(got.2, expected_b) <= tolerance
     }
 
+    #[cfg(feature="debugging")]
     pub fn base64(&self) -> &str {
         &self.base64
     }

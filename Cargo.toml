@@ -17,8 +17,8 @@ base64 = { version="0.13", optional=true}
 maud = "0.22"
 
 [features]
-default = ["visualization"]
-visualization = ["image", "base64"]
+default = []
+debugging = ["image", "base64"]
 
 [dependencies.web-sys]
 version = "0.3"
