@@ -36,13 +36,13 @@ pub async fn get_images() -> Vec<ytimg::Image> {
 
     use maud::Render;
 
-    let selection = [76,77,201,202,203,204,205,312,313,314,504,505,506,507,508,509,510,511,512,513,514,515,516]; // https://www.youtube.com/watch?v=BTQcPQ03n3I&ab_channel=DomingoReplay
+    let selection = [266,267,268,298,299,304,305,306,307,481,482]; // https://www.youtube.com/watch?v=BTQcPQ03n3I&ab_channel=DomingoReplay
     let mut r: u64 = 0;
     let mut g: u64 = 0;
     let mut b: u64 = 0;
     for (idx, image) in images.iter().enumerate() {
         if selection.contains(&idx) {
-            let (r2, g2, b2) = image.get_pixels_mean(49..111, 12..21);
+            let (r2, g2, b2) = image.get_pixels_mean(0..160, 0..90);
             r += r2 as u64;
             g += g2 as u64;
             b += b2 as u64;
@@ -147,6 +147,13 @@ pub async fn get_images() -> Vec<ytimg::Image> {
                                     boolean_value=(image.victory_screen)
                                     title=(format!("Mean of 49..111,12..21 = {:?}\nMean of 40..120,25..41 = {:?}", image.get_pixels_mean(49..111, 12..21), image.get_pixels_mean(40..120, 25..41)))
                                     {(image.victory_screen)}
+                            }
+                            tr {
+                                td {"alert"}
+                                td
+                                    boolean_value=(image.alert)
+                                    title=(format!("Mean of 0..160,0..30 = {:?}\nMean of 0..160,30..60 = {:?}\nMean of 0..160,60..90 = {:?}", image.get_pixels_mean(0..160, 0..30), image.get_pixels_mean(0..160, 30..60), image.get_pixels_mean(0..160, 60..90)))
+                                    {(image.alert)}
                             }
                         }
                     }

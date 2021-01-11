@@ -156,6 +156,7 @@ pub struct Image {
     pub open_map: bool,
     pub game_settings: bool,
     pub victory_screen: bool,
+    pub alert: bool,
     base64: String,
 }
 
@@ -169,6 +170,7 @@ impl Image {
             open_map: false,
             game_settings: false,
             victory_screen: false,
+            alert: false,
             base64: String::new(),
         };
 
@@ -178,6 +180,23 @@ impl Image {
         image.open_map = image.bright_map && (image.does_pixels_mean_match(24..29, 9..14, 0xbdc0c4, 20) || image.does_pixels_mean_match(10..15, 9..15, 0xb9bfbe, 20));
         image.game_settings = image.does_pixels_mean_match(1..17, 3..68, 0x484949, 10);
         image.victory_screen = image.does_pixels_mean_match(49..111, 12..21, 0x163150, 10) && image.does_pixels_mean_match(40..120, 25..41, 0x000000, 10);
+        image.alert = {
+            let (r,g,b) = image.get_pixels_mean(0..160, 0..30);
+            let diff = r as i32 - (g as i32 + b as i32);
+            if r >= 110 && (std::cmp::max(diff, -diff) < 40) {
+                let (r,g,b) = image.get_pixels_mean(0..160, 30..60);
+                let diff = r as i32 - (g as i32 + b as i32);
+                if r >= 110 && (std::cmp::max(diff, -diff) < 40) {
+                    let (r,g,b) = image.get_pixels_mean(0..160, 60..90);
+                    let diff = r as i32 - (g as i32 + b as i32);
+                    r >= 110 && (std::cmp::max(diff, -diff) < 40)
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        };
 
         use image::{ImageBuffer, RgbImage};
         let mut img: RgbImage = ImageBuffer::new(160, 90);
