@@ -180,8 +180,6 @@ impl Image {
         image.bright_map = image.does_pixels_mean_match(152..156, 14..15, 0xc8cbcc, 20) && image.does_pixels_mean_match(153..155, 17..19, 0x54595a, 20);
         image.impostor_objective = !image.council && image.does_pixels_mean_match(1..39, 12..13, 0x51252b, 20);
         image.open_map = image.bright_map && (image.does_pixels_mean_match(24..29, 9..14, 0xbdc0c4, 20) || image.does_pixels_mean_match(10..15, 9..15, 0xb9bfbe, 20));
-        image.game_settings = !image.council && !image.bright_map && image.does_pixels_mean_match(1..17, 3..68, 0x484949, 15);
-        image.victory_screen = image.does_pixels_mean_match(49..111, 12..21, 0x163150, 10) && image.does_pixels_mean_match(40..120, 25..41, 0x000000, 10);
         image.alert = {
             let (r,g,b) = image.get_pixels_mean(0..160, 0..30);
             let diff = r as i32 - (g as i32 + b as i32);
@@ -199,7 +197,9 @@ impl Image {
                 false
             }
         };
-        image.progress_bar = !image.council && (image.does_pixels_mean_match(2..12, 3..6, 0x72a072, 10) || image.does_pixels_mean_match(64..71, 3..6, 0x353d38, 10));
+        image.progress_bar = !image.council && (image.does_pixels_mean_match(2..12, 3..6, 0x72a072, 20) || (image.does_pixels_mean_match(64..71, 3..6, 0x353d38, 20) && image.does_pixels_mean_match(64..71, 2..3, 0x989ca5, 50)));
+        image.game_settings = !image.is_game() && image.does_pixels_mean_match(1..17, 3..68, 0x484949, 15);
+        image.victory_screen = !image.is_game() && image.does_pixels_mean_match(49..111, 12..21, 0x163150, 10) && image.does_pixels_mean_match(40..120, 25..41, 0x000000, 10);
 
         use image::{ImageBuffer, RgbImage};
         let mut img: RgbImage = ImageBuffer::new(160, 90);
