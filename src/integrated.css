@@ -1,0 +1,30 @@
+#among_us_addon_chapters {
+    display: flex;
+    flex-direction: row;
+    position: relative;
+    bottom: calc(1rem + 12px);
+}
+
+.impostor_game, .crewmate_game {
+    margin: 0 1px;
+    height: calc(2rem + 4px);
+    padding: 2px 5px;
+    /*border-radius: 4px 4px 0 0;*/
+    font-family: monospace;
+    font-size: 2rem;
+    line-height: calc(2rem + 4px);
+}
+
+.impostor_game {
+    /*background-color: rgba(206, 43, 46,.7);*/
+    border: 1px solid rgb(206, 43, 46);
+    color: rgb(206, 43, 46);
+    background-color: rgb(40,0,0,.9);
+}
+
+.crewmate_game {
+    /*background-color: rgba(141, 255, 255,.7);*/
+    border: 1px solid rgb(141, 255, 255);
+    color: rgb(141, 255, 255);
+    background-color: rgba(22, 37, 37, 0.9);
+}

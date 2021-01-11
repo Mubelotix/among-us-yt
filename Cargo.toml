@@ -14,11 +14,11 @@ wasm-bindgen-futures = "0.4"
 console_error_panic_hook = "0.1.6"
 image = { version="0.23", optional=true}
 base64 = { version="0.13", optional=true}
-maud = {version="*", optional=true}
+maud = "0.22"
 
 [features]
 default = ["visualization"]
-visualization = ["image", "base64", "maud"]
+visualization = ["image", "base64"]
 
 [dependencies.web-sys]
 version = "0.3"
@@ -36,5 +36,6 @@ features = [
     "HtmlCanvasElement",
     "CanvasRenderingContext2d",
     "ImageData",
-    "HtmlDocument"
+    "HtmlDocument",
+    "HtmlCollection",
 ]

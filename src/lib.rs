@@ -4,7 +4,7 @@ use web_sys::*;
 mod util;
 mod ytimg;
 
-pub async fn get_images() -> Vec<ytimg::Image> {
+pub async fn get_images() -> Vec<std::ops::Range<usize>> {
     let document = window()
         .unwrap()
         .document()
@@ -206,7 +206,7 @@ pub async fn get_images() -> Vec<ytimg::Image> {
     let window = window().unwrap().open_with_url("about:blank").unwrap().unwrap();
     window.document().unwrap().dyn_into::<HtmlDocument>().unwrap().write_1(&html.into_string()).unwrap();
 
-    images
+    games
 }
 
 #[wasm_bindgen(start)]
@@ -215,6 +215,27 @@ pub async fn main() {
 
     log!("Hello World!");
 
-    let images = get_images().await;
-    log!("{}", images.len());
+    //let images = get_images().await;
+    let container = loop {
+        match window().unwrap().document().unwrap().get_elements_by_class_name("ytp-progress-bar-padding").item(0) {
+            Some(container) => break container,
+            None => util::sleep(std::time::Duration::from_millis(200)).await,
+        }
+    };
+
+    let html = maud::html! {
+        style { (include_str!("integrated.css")) }
+        #among_us_addon_chapters {
+            div.impostor_game style="width: calc(30% - 2px);" {
+                "Impostor"
+            }
+            div.crewmate_game style="width: calc(45% - 2px);" {
+                "Crewmate"
+            }
+            div.impostor_game style="width: calc(25% - 2px);" {
+                "Impostor"
+            }
+        }
+    };
+    container.set_inner_html(&html.into_string());
 }
