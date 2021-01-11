@@ -35,6 +35,17 @@ pub async fn get_images() -> (Vec<(std::ops::Range<usize>, bool)>, usize) {
         images.append(&mut new_images);
         n += 1;
     }
+    'images: for i in (0..images.len()).into_iter().rev() {
+        for x in 0..160 {
+            for y in 0..90 {
+                if images[i].get_pixel(x, y) != (0,0,0) {
+                    break 'images;
+                }
+            }
+        }
+        images.remove(i);
+        log!("removed an image");
+    }
 
     let selection = [112,113,114,115,116,117,247,248,249,250,335,336,337]; // https://www.youtube.com/watch?v=kofC4k2tm68&ab_channel=DomingoReplay
     let mut r: u64 = 0;
@@ -245,11 +256,11 @@ pub async fn main() {
         #among_us_addon_chapters {
             @for (game, is_impostor) in games.iter() {
                 @if *is_impostor {
-                    div.impostor_game style=(format!("left: {}%; width: {}%;", game.start as f64 * factor, (game.end - game.start) as f64 * factor)) {
+                    div.impostor_game style=(format!("left: {}%; width: calc({}% - 4px);", game.start as f64 * factor, (game.end - game.start) as f64 * factor)) {
                         "Impostor"
                     }
                 } @else {
-                    div.crewmate_game style=(format!("left: {}%; width: {}%;", game.start as f64 * factor, (game.end - game.start) as f64 * factor)) {
+                    div.crewmate_game style=(format!("left: {}%; width: calc({}% - 4px);", game.start as f64 * factor, (game.end - game.start) as f64 * factor)) {
                         "Crewmate"
                     }
                 }
