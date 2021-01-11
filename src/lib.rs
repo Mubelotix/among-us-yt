@@ -33,9 +33,7 @@ pub async fn get_images() -> Vec<ytimg::Image> {
         images.append(&mut new_images);
         n += 1;
     }
-
-    use maud::Render;
-
+    
     let selection = [15,16,17,18,19,20,21,22,23,24,25,26,36,37,39,40,41,42,43,44,45,46,47,48,49,56,57,58,59,60,61,62,63,64,65,66,67,68,94,95,96,97,98,99,100,101,102,103,104,105,106,115,123,124,125,126,127,128,139,140,141,142,143,144,145,146,147,148,149,150,151,152]; // https://www.youtube.com/watch?v=BTQcPQ03n3I&ab_channel=DomingoReplay
     let mut r: u64 = 0;
     let mut g: u64 = 0;
@@ -110,9 +108,9 @@ pub async fn get_images() -> Vec<ytimg::Image> {
                             tr { td {"index"} td {(idx)} }
                             tr {
                                 td {"council"}
-                                td boolean_value=(image.is_council())
+                                td boolean_value=(image.council)
                                     title=(format!("Mean of 28..74,16..17 = {:?}", image.get_pixels_mean(28..74, 16..17)))
-                                    {(image.is_council())} }
+                                    {(image.council)} }
                             tr {
                                 td {"bright map"}
                                 td
