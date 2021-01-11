@@ -154,6 +154,7 @@ pub struct Image {
     pub bright_map: bool,
     pub impostor_objective: bool,
     pub open_map: bool,
+    pub game_settings: bool,
     base64: String,
 }
 
@@ -165,6 +166,7 @@ impl Image {
             bright_map: false,
             impostor_objective: false,
             open_map: false,
+            game_settings: false,
             base64: String::new(),
         };
 
@@ -172,6 +174,7 @@ impl Image {
         image.bright_map = image.does_pixels_mean_match(152..156, 14..15, 0xc8cbcc, 20) && image.does_pixels_mean_match(153..155, 17..19, 0x54595a, 20);
         image.impostor_objective = !image.is_council && image.does_pixels_mean_match(1..39, 12..13, 0x51252b, 20);
         image.open_map = image.bright_map && (image.does_pixels_mean_match(24..29, 9..14, 0xbdc0c4, 20) || image.does_pixels_mean_match(10..15, 9..15, 0xb9bfbe, 20));
+        image.game_settings = image.does_pixels_mean_match(1..17, 3..68, 0x484949, 10);
 
         use image::{ImageBuffer, RgbImage};
         let mut img: RgbImage = ImageBuffer::new(160, 90);

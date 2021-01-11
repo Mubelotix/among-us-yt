@@ -36,13 +36,13 @@ pub async fn get_images() -> Vec<ytimg::Image> {
 
     use maud::Render;
 
-    let selection = [4,5,6,7,25,26,27,28,29,30,31,50,51,52,53,54,55,56,57,76,77,78,79,97,98,99,101,102,103,104,105];
+    let selection = [40,1,2,3,4,5,6,78,79,80,81,82,83,206,207,208,209,210,315,316,317,318,319,320,321,322,323,324,325,326,408,409]; // https://www.youtube.com/watch?v=BTQcPQ03n3I&ab_channel=DomingoReplay
     let mut r: u64 = 0;
     let mut g: u64 = 0;
     let mut b: u64 = 0;
     for (idx, image) in images.iter().enumerate() {
         if selection.contains(&idx) {
-            let (r2, g2, b2) = image.get_pixels_mean(153..155, 17..19);
+            let (r2, g2, b2) = image.get_pixels_mean(1..17, 3..68);
             r += r2 as u64;
             g += g2 as u64;
             b += b2 as u64;
@@ -133,6 +133,13 @@ pub async fn get_images() -> Vec<ytimg::Image> {
                                     boolean_value=(image.impostor_objective)
                                     title=(format!("Mean of 1..39,12..13 = {:?}", image.get_pixels_mean(1..39, 12..13)))
                                     {(image.impostor_objective)}
+                            }
+                            tr {
+                                td {"game settings"}
+                                td
+                                    boolean_value=(image.game_settings)
+                                    title=(format!("Mean of 1..17,3..68 = {:?}", image.get_pixels_mean(1..17, 3..68)))
+                                    {(image.game_settings)}
                             }
                         }
                     }
