@@ -39,4 +39,9 @@ features = [
     "HtmlDocument",
     "HtmlCollection",
     "Location",
+    "IdbFactory",
+    "IdbOpenDbRequest",
+    "IdbDatabase",
+    "IdbTransaction",
+    "IdbObjectStore",
 ]

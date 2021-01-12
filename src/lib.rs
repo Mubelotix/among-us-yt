@@ -1,4 +1,4 @@
-use std::ops::AddAssign;
+use std::{cell::Cell, ops::AddAssign, rc::Rc};
 
 use wasm_bindgen::{prelude::*, JsCast};
 use wasm_bindgen_futures::JsFuture;
@@ -10,11 +10,11 @@ mod ytimg;
 pub async fn get_images(loaded: bool) -> (Vec<(std::ops::Range<usize>, bool)>, usize) {
     let endpoints = if loaded {
         let document = window()
-        .unwrap()
-        .document()
-        .unwrap()
-        .document_element()
-        .unwrap();
+            .unwrap()
+            .document()
+            .unwrap()
+            .document_element()
+            .unwrap();
         let mut html = js_sys::Reflect::get(&document, &"innerHTML".into())
             .unwrap()
             .as_string()
@@ -33,29 +33,101 @@ pub async fn get_images(loaded: bool) -> (Vec<(std::ops::Range<usize>, bool)>, u
         url.truncate(end);
         let id = url;
 
+        let open_db_request = window()
+            .unwrap()
+            .indexed_db()
+            .unwrap()
+            .unwrap()
+            .open("swpushnotificationsdb")
+            .unwrap();
+        let open_db_request2 = open_db_request.clone();
+        let state = Rc::new(Cell::new(None));
+        let state2 = Rc::clone(&state);
+        let closure = Closure::wrap(Box::new(move |_event: web_sys::Event| {
+            let database: IdbDatabase = open_db_request2.result().unwrap().dyn_into().unwrap();
+            state2.set(Some(database));
+        }) as Box<dyn FnMut(_)>);
+        open_db_request
+            .add_event_listener_with_callback(
+                "success", // TODO HANDLE ERROR
+                closure.as_ref().unchecked_ref(),
+            )
+            .unwrap();
+
+        let db = loop {
+            match state.take() {
+                Some(db) => break db,
+                None => util::sleep(std::time::Duration::from_millis(200)).await,
+            }
+        };
+        let transaction = db.transaction_with_str("swpushnotificationsstore").unwrap();
+        let store = transaction
+            .object_store("swpushnotificationsstore")
+            .unwrap();
+        let value_request = store.get(&"IDToken".into()).unwrap();
+        let value_request2 = value_request.clone();
+        let state = Rc::new(Cell::new(None));
+        let state2 = Rc::clone(&state);
+        let closure = Closure::wrap(Box::new(move |_event: web_sys::Event| {
+            let value = js_sys::Reflect::get(&value_request2.result().unwrap(), &"value".into())
+                .unwrap()
+                .as_string()
+                .unwrap();
+            state2.set(Some(value));
+        }) as Box<dyn FnMut(_)>);
+        value_request
+            .add_event_listener_with_callback(
+                "success", // TODO HANDLE ERROR
+                closure.as_ref().unchecked_ref(),
+            )
+            .unwrap();
+
+        let user_id = loop {
+            match state.take() {
+                Some(user_id) => break user_id,
+                None => util::sleep(std::time::Duration::from_millis(200)).await,
+            }
+        };
+
         let mut request: RequestInit = RequestInit::new();
         request.method("GET");
 
         let headers = Headers::new().unwrap();
-        headers.append("X-SPF-Previous", "https://www.youtube.com/").unwrap();
-        headers.append("X-SPF-Referer", "https://www.youtube.com/").unwrap();
+        headers
+            .append("X-SPF-Previous", "https://www.youtube.com/")
+            .unwrap();
+        headers
+            .append("X-SPF-Referer", "https://www.youtube.com/")
+            .unwrap();
         headers.append("X-YouTube-Client-Name", "1").unwrap();
-        headers.append("X-YouTube-Client-Version", "2.20210110.08.00").unwrap();
+        headers
+            .append("X-YouTube-Client-Version", "2.20210110.08.00")
+            .unwrap();
         headers.append("x-youtube-csoc", "1").unwrap();
-        headers.append("X-YouTube-Device", "cbr=Firefox&cbrver=84.0&ceng=Gecko&cengver=84.0&cos=X11&cplatform=DESKTOP").unwrap();
-        headers.append("X-Youtube-Identity-Token", "QUFFLUhqa1N4SWRWZGlYZzQyZ1VhZHhiclFhWEVPOVZMQXw=").unwrap(); // FIXME
-        headers.append("X-YouTube-Time-Zone", "Europe/Paris").unwrap();
+        headers
+            .append(
+                "X-YouTube-Device",
+                "cbr=Firefox&cbrver=84.0&ceng=Gecko&cengver=84.0&cos=X11&cplatform=DESKTOP",
+            )
+            .unwrap();
+        headers
+            .append("X-Youtube-Identity-Token", &user_id)
+            .unwrap();
+        headers
+            .append("X-YouTube-Time-Zone", "Europe/Paris")
+            .unwrap();
         headers.append("X-YouTube-Utc-Offset", "60").unwrap();
         request.headers(&headers);
 
         let window = window().unwrap();
-        let response = Response::from(JsFuture::from(window.fetch_with_str_and_init(
-            &format!(
-                "https://www.youtube.com/watch?v={}&pbj=1",
-                id
-            ),
-            &request,
-        )).await.unwrap());
+        let response = Response::from(
+            JsFuture::from(window.fetch_with_str_and_init(
+                &format!("https://www.youtube.com/watch?v={}&pbj=1", id),
+                &request,
+            ))
+            .await
+            .unwrap(),
+        );
 
         if response.status() != 200 {
             panic!("Unexpected response status");
@@ -354,7 +426,9 @@ pub async fn main() {
         if window2.location().href().unwrap() != last_url {
             last_url = window2.location().href().unwrap();
             log!("url changed! to {}", last_url);
-            if last_url.starts_with("https://www.youtube.com/watch?v=") && last_url.contains("ab_channel") {
+            if last_url.starts_with("https://www.youtube.com/watch?v=")
+                && last_url.contains("ab_channel")
+            {
                 wasm_bindgen_futures::spawn_local(async move {
                     if !launched {
                         launched = true;
