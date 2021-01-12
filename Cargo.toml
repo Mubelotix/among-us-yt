@@ -38,4 +38,5 @@ features = [
     "ImageData",
     "HtmlDocument",
     "HtmlCollection",
+    "Location",
 ]

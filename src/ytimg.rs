@@ -20,9 +20,6 @@ impl Endpoint {
         let mut request: RequestInit = RequestInit::new();
         request.method("GET");
 
-        let headers = Headers::new().unwrap();
-        request.headers(&headers);
-
         let window = window().unwrap();
         let response = match JsFuture::from(window.fetch_with_str_and_init(
             &format!(

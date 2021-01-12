@@ -1,28 +1,82 @@
 use std::ops::AddAssign;
 
 use wasm_bindgen::{prelude::*, JsCast};
+use wasm_bindgen_futures::JsFuture;
 use web_sys::*;
 #[macro_use]
 mod util;
 mod ytimg;
 
-pub async fn get_images() -> (Vec<(std::ops::Range<usize>, bool)>, usize) {
-    let document = window()
+pub async fn get_images(loaded: bool) -> (Vec<(std::ops::Range<usize>, bool)>, usize) {
+    let endpoints = if loaded {
+        let document = window()
         .unwrap()
         .document()
         .unwrap()
         .document_element()
         .unwrap();
-    let mut html = js_sys::Reflect::get(&document, &"innerHTML".into())
-        .unwrap()
-        .as_string()
-        .unwrap();
-    let idx = html.find("https://i.ytimg.com/sb/").unwrap();
-    html.replace_range(..idx, "");
-    let idx = html.find("\"}}").unwrap();
-    html.truncate(idx);
-    log!("value: {}", html);
-    let endpoints = ytimg::parse_value(html).unwrap();
+        let mut html = js_sys::Reflect::get(&document, &"innerHTML".into())
+            .unwrap()
+            .as_string()
+            .unwrap();
+        let idx = html.find("https://i.ytimg.com/sb/").unwrap();
+        html.replace_range(..idx, "");
+        let idx = html.find("\"}}").unwrap();
+        html.truncate(idx);
+        log!("value: {}", html);
+        ytimg::parse_value(html).unwrap()
+    } else {
+        let mut url = window().unwrap().location().href().unwrap();
+        let start = url.find("watch?v=").unwrap();
+        url.replace_range(..start + 8, "");
+        let end = url.find('&').unwrap_or_else(|| url.len());
+        url.truncate(end);
+        let id = url;
+
+        let mut request: RequestInit = RequestInit::new();
+        request.method("GET");
+
+        let headers = Headers::new().unwrap();
+        headers.append("X-SPF-Previous", "https://www.youtube.com/").unwrap();
+        headers.append("X-SPF-Referer", "https://www.youtube.com/").unwrap();
+        headers.append("X-YouTube-Client-Name", "1").unwrap();
+        headers.append("X-YouTube-Client-Version", "2.20210110.08.00").unwrap();
+        headers.append("x-youtube-csoc", "1").unwrap();
+        headers.append("X-YouTube-Device", "cbr=Firefox&cbrver=84.0&ceng=Gecko&cengver=84.0&cos=X11&cplatform=DESKTOP").unwrap();
+        headers.append("X-Youtube-Identity-Token", "QUFFLUhqa1N4SWRWZGlYZzQyZ1VhZHhiclFhWEVPOVZMQXw=").unwrap(); // FIXME
+        headers.append("X-YouTube-Time-Zone", "Europe/Paris").unwrap();
+        headers.append("X-YouTube-Utc-Offset", "60").unwrap();
+        request.headers(&headers);
+
+        let window = window().unwrap();
+        let response = Response::from(JsFuture::from(window.fetch_with_str_and_init(
+            &format!(
+                "https://www.youtube.com/watch?v={}&pbj=1",
+                id
+            ),
+            &request,
+        )).await.unwrap());
+
+        if response.status() != 200 {
+            panic!("Unexpected response status");
+        }
+
+        let mut object = JsFuture::from(response.json().unwrap()).await.unwrap();
+        log!("object: {:?}", object);
+        object = js_sys::Reflect::get(&object, &2.into()).unwrap();
+        log!("object: {:?}", object);
+        object = js_sys::Reflect::get(&object, &"playerResponse".into()).unwrap();
+        log!("object: {:?}", object);
+        object = js_sys::Reflect::get(&object, &"storyboards".into()).unwrap();
+        log!("object: {:?}", object);
+        object = js_sys::Reflect::get(&object, &"playerStoryboardSpecRenderer".into()).unwrap();
+        log!("object: {:?}", object);
+        object = js_sys::Reflect::get(&object, &"spec".into()).unwrap();
+        log!("object: {:?}", object);
+
+        log!("unimplemented");
+        return (Vec::new(), 0);
+    };
 
     log!("Status confirmed: {:?}", endpoints);
 
@@ -38,7 +92,7 @@ pub async fn get_images() -> (Vec<(std::ops::Range<usize>, bool)>, usize) {
     'images: for i in (0..images.len()).into_iter().rev() {
         for x in 0..160 {
             for y in 0..90 {
-                if images[i].get_pixel(x, y) != (0,0,0) {
+                if images[i].get_pixel(x, y) != (0, 0, 0) {
                     break 'images;
                 }
             }
@@ -47,7 +101,9 @@ pub async fn get_images() -> (Vec<(std::ops::Range<usize>, bool)>, usize) {
         log!("removed an image");
     }
 
-    let selection = [112,113,114,115,116,117,247,248,249,250,335,336,337]; // https://www.youtube.com/watch?v=kofC4k2tm68&ab_channel=DomingoReplay
+    let selection = [
+        112, 113, 114, 115, 116, 117, 247, 248, 249, 250, 335, 336, 337,
+    ]; // https://www.youtube.com/watch?v=kofC4k2tm68&ab_channel=DomingoReplay
     let mut r: u64 = 0;
     let mut g: u64 = 0;
     let mut b: u64 = 0;
@@ -91,10 +147,10 @@ pub async fn get_images() -> (Vec<(std::ops::Range<usize>, bool)>, usize) {
     }
     if let Some((start, impostor_objectives_count, ingame_frames_count)) = current_game {
         let ratio = impostor_objectives_count as f64 / ingame_frames_count as f64;
-        games.push((start..idx, ratio > 0.6));
+        games.push((start..images.len(), ratio > 0.6));
     }
 
-    #[cfg(feature="debugging")]
+    #[cfg(feature = "debugging")]
     let html = maud::html! {
         head {
             title { "Video Analys Report" }
@@ -231,21 +287,33 @@ pub async fn get_images() -> (Vec<(std::ops::Range<usize>, bool)>, usize) {
         }
     };
 
-    #[cfg(feature="debugging")]
-    window().unwrap().open_with_url("about:blank").unwrap().unwrap().document().unwrap().dyn_into::<HtmlDocument>().unwrap().write_1(&html.into_string()).unwrap();
+    #[cfg(feature = "debugging")]
+    window()
+        .unwrap()
+        .open_with_url("about:blank")
+        .unwrap()
+        .unwrap()
+        .document()
+        .unwrap()
+        .dyn_into::<HtmlDocument>()
+        .unwrap()
+        .write_1(&html.into_string())
+        .unwrap();
 
     (games, images.len())
 }
 
-#[wasm_bindgen(start)]
-pub async fn main() {
-    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-
-    log!("Hello World!");
-
-    let (games, lenght) = get_images().await;
+pub async fn run(loaded: bool) {
+    log!("running...");
+    let (games, lenght) = get_images(loaded).await;
+    let window = window().unwrap();
     let container = loop {
-        match window().unwrap().document().unwrap().get_elements_by_class_name("ytp-progress-bar-padding").item(0) {
+        match window
+            .document()
+            .unwrap()
+            .get_elements_by_class_name("ytp-progress-bar-padding")
+            .item(0)
+        {
             Some(container) => break container,
             None => util::sleep(std::time::Duration::from_millis(200)).await,
         }
@@ -270,4 +338,44 @@ pub async fn main() {
         }
     };
     container.set_inner_html(&html.into_string());
+}
+
+#[wasm_bindgen(start)]
+pub async fn main() {
+    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+    log!("Hello World!");
+
+    let mut launched = false;
+    let window2 = window().unwrap();
+    let mut last_url = window2.location().href().unwrap();
+    if last_url.starts_with("https://www.youtube.com/watch?v=") {
+        wasm_bindgen_futures::spawn_local(async move {
+            if !launched {
+                launched = true;
+                run(true).await;
+            }
+        });
+    }
+    let closure = Closure::wrap(Box::new(move |_event: web_sys::Event| {
+        if window2.location().href().unwrap() != last_url {
+            last_url = window2.location().href().unwrap();
+            log!("url changed! to {}", last_url);
+            if last_url.starts_with("https://www.youtube.com/watch?v=") {
+                wasm_bindgen_futures::spawn_local(async move {
+                    if !launched {
+                        launched = true;
+                        run(false).await;
+                    }
+                });
+            }
+        }
+    }) as Box<dyn FnMut(_)>);
+    window()
+        .unwrap()
+        .set_interval_with_callback_and_timeout_and_arguments_0(
+            closure.as_ref().unchecked_ref(),
+            1000,
+        )
+        .unwrap();
+    closure.forget();
 }
