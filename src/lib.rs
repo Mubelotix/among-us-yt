@@ -62,20 +62,14 @@ pub async fn get_images(loaded: bool) -> (Vec<(std::ops::Range<usize>, bool)>, u
         }
 
         let mut object = JsFuture::from(response.json().unwrap()).await.unwrap();
-        log!("object: {:?}", object);
         object = js_sys::Reflect::get(&object, &2.into()).unwrap();
-        log!("object: {:?}", object);
         object = js_sys::Reflect::get(&object, &"playerResponse".into()).unwrap();
-        log!("object: {:?}", object);
         object = js_sys::Reflect::get(&object, &"storyboards".into()).unwrap();
-        log!("object: {:?}", object);
         object = js_sys::Reflect::get(&object, &"playerStoryboardSpecRenderer".into()).unwrap();
-        log!("object: {:?}", object);
         object = js_sys::Reflect::get(&object, &"spec".into()).unwrap();
-        log!("object: {:?}", object);
+        let value = object.as_string().unwrap();
 
-        log!("unimplemented");
-        return (Vec::new(), 0);
+        ytimg::parse_value(value).unwrap()
     };
 
     log!("Status confirmed: {:?}", endpoints);
@@ -360,7 +354,7 @@ pub async fn main() {
         if window2.location().href().unwrap() != last_url {
             last_url = window2.location().href().unwrap();
             log!("url changed! to {}", last_url);
-            if last_url.starts_with("https://www.youtube.com/watch?v=") {
+            if last_url.starts_with("https://www.youtube.com/watch?v=") && last_url.contains("ab_channel") {
                 wasm_bindgen_futures::spawn_local(async move {
                     if !launched {
                         launched = true;
