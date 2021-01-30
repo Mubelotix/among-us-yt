@@ -6,25 +6,37 @@ use web_sys::*;
 #[macro_use]
 mod util;
 mod ytimg;
+mod yt_format;
+use yt_format::*;
 
 pub async fn get_images(loaded: bool) -> Option<(Vec<(std::ops::Range<usize>, bool)>, usize)> {
-    let endpoints = if loaded {
+    let (yt_initial_player_response, yt_initial_data) = if loaded {
         let document = window()
             .unwrap()
             .document()
             .unwrap()
             .document_element()
             .unwrap();
-        let mut html = js_sys::Reflect::get(&document, &"innerHTML".into())
+        let html = js_sys::Reflect::get(&document, &"innerHTML".into())
             .unwrap()
             .as_string()
             .unwrap();
-        let idx = html.find("https://i.ytimg.com/sb/").unwrap();
-        html.replace_range(..idx, "");
-        let idx = html.find("\"}}").unwrap();
-        html.truncate(idx);
-        log!("value: {}", html);
-        ytimg::parse_value(html).unwrap()
+
+        let idx_start = html.find("var ytInitialPlayerResponse = {").unwrap() + 30;
+        let idx_end = html[idx_start..]
+            .find(";var meta = document.createElement('meta');")
+            .unwrap();
+        let yt_initial_player_response = html[idx_start..idx_start + idx_end].to_string();
+        let yt_initial_player_response = parse_json(yt_initial_player_response).unwrap();
+
+        let idx_start = html.find("var ytInitialData = {").unwrap() + 20;
+        let idx_end = html[idx_start..]
+            .find(";</script><script nonce=\"")
+            .unwrap();
+        let yt_initial_data = html[idx_start..idx_start + idx_end].to_string();
+        let yt_initial_data = parse_json(yt_initial_data).unwrap();
+
+        (yt_initial_player_response, yt_initial_data)
     } else {
         let mut url = window().unwrap().location().href().unwrap();
         let start = url.find("watch?v=").unwrap();
@@ -134,42 +146,19 @@ pub async fn get_images(loaded: bool) -> Option<(Vec<(std::ops::Range<usize>, bo
         }
 
         let object = JsFuture::from(response.json().unwrap()).await.unwrap();
-        let mut value = js_sys::Reflect::get(&object, &2.into()).unwrap();
-        value = js_sys::Reflect::get(&value, &"playerResponse".into()).unwrap();
-        value = js_sys::Reflect::get(&value, &"storyboards".into()).unwrap();
-        value = js_sys::Reflect::get(&value, &"playerStoryboardSpecRenderer".into()).unwrap();
-        value = js_sys::Reflect::get(&value, &"spec".into()).unwrap();
-        let value = value.as_string().unwrap();
+        let mut yt_initial_player_response = js_sys::Reflect::get(&object, &2.into()).unwrap();
+        yt_initial_player_response = js_sys::Reflect::get(&yt_initial_player_response, &"playerResponse".into()).unwrap();
 
-        fn get_game_name(object: &JsValue) -> Option<String> {
-            let mut game_name: JsValue = js_sys::Reflect::get(&object, &3.into()).ok()?;
-            game_name = js_sys::Reflect::get(&game_name, &"response".into()).ok()?;
-            game_name = js_sys::Reflect::get(&game_name, &"contents".into()).ok()?;
-            game_name = js_sys::Reflect::get(&game_name, &"twoColumnWatchNextResults".into()).ok()?;
-            game_name = js_sys::Reflect::get(&game_name, &"results".into()).ok()?;
-            game_name = js_sys::Reflect::get(&game_name, &"results".into()).ok()?;
-            game_name = js_sys::Reflect::get(&game_name, &"contents".into()).ok()?;
-            game_name = js_sys::Reflect::get(&game_name, &1.into()).ok()?;
-            game_name = js_sys::Reflect::get(&game_name, &"videoSecondaryInfoRenderer".into()).ok()?;
-            game_name = js_sys::Reflect::get(&game_name, &"metadataRowContainer".into()).ok()?;
-            game_name = js_sys::Reflect::get(&game_name, &"metadataRowContainerRenderer".into()).ok()?;
-            game_name = js_sys::Reflect::get(&game_name, &"rows".into()).ok()?;
-            game_name = js_sys::Reflect::get(&game_name, &0.into()).ok()?;
-            game_name = js_sys::Reflect::get(&game_name, &"richMetadataRowRenderer".into()).ok()?;
-            game_name = js_sys::Reflect::get(&game_name, &"contents".into()).ok()?;
-            game_name = js_sys::Reflect::get(&game_name, &0.into()).ok()?;
-            game_name = js_sys::Reflect::get(&game_name, &"richMetadataRenderer".into()).ok()?;
-            game_name = js_sys::Reflect::get(&game_name, &"title".into()).ok()?;
-            game_name = js_sys::Reflect::get(&game_name, &"simpleText".into()).ok()?;
-            game_name.as_string()
-        }
+        let mut yt_initial_data: JsValue = js_sys::Reflect::get(&object, &3.into()).ok()?;
+        yt_initial_data = js_sys::Reflect::get(&yt_initial_data, &"response".into()).ok()?;
 
-        if get_game_name(&object) != Some("Among Us".to_string()) {
-            return None;
-        }
-
-        ytimg::parse_value(value).unwrap()
+        (yt_initial_player_response, yt_initial_data)
     };
+
+    if get_game_name(&yt_initial_player_response) != Some("Among Us".to_string()) {
+        return None;
+    }
+    let endpoints = ytimg::parse_value(get_storyboard(yt_initial_data).unwrap()).unwrap();
 
     log!("Status confirmed: {:?}", endpoints);
 
@@ -400,7 +389,7 @@ pub async fn run(loaded: bool) {
     log!("running...");
     let (games, lenght) = match get_images(loaded).await {
         Some(v) => v,
-        None => return
+        None => return,
     };
     let window = window().unwrap();
     let container = loop {
@@ -453,7 +442,6 @@ pub async fn main() {
             last_url = window2.location().href().unwrap();
             log!("url changed! to {}", last_url);
             if last_url.starts_with("https://www.youtube.com/watch?v=")
-                && last_url.contains("ab_channel")
             {
                 wasm_bindgen_futures::spawn_local(async move {
                     run(false).await;
