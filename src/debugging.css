@@ -1,0 +1,45 @@
+main {
+    display: flex;
+    flex-direction: row;
+}
+
+html, body {
+    padding: 0;
+    margin: 0;
+}
+
+main>div {
+    min-width: 160px;
+    margin: 5px;
+}
+
+main>div:hover {
+    min-width: 480px;
+}
+
+.preview_image {
+    width: 100%;
+    margin-bottom: 1rem;
+}
+
+table, th, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+}
+
+td {
+    padding: 5px;
+}
+
+td[boolean_value="true"] {
+    background-color: #bfb;
+}
+
+td[boolean_value="false"] {
+    background-color: #fbb;
+}
+
+#games {
+    position: fixed;
+    left: 5px;
+}
