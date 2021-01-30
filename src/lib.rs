@@ -7,7 +7,7 @@ use web_sys::*;
 mod util;
 mod ytimg;
 
-pub async fn get_images(loaded: bool) -> (Vec<(std::ops::Range<usize>, bool)>, usize) {
+pub async fn get_images(loaded: bool) -> Option<(Vec<(std::ops::Range<usize>, bool)>, usize)> {
     let endpoints = if loaded {
         let document = window()
             .unwrap()
@@ -133,13 +133,40 @@ pub async fn get_images(loaded: bool) -> (Vec<(std::ops::Range<usize>, bool)>, u
             panic!("Unexpected response status");
         }
 
-        let mut object = JsFuture::from(response.json().unwrap()).await.unwrap();
-        object = js_sys::Reflect::get(&object, &2.into()).unwrap();
-        object = js_sys::Reflect::get(&object, &"playerResponse".into()).unwrap();
-        object = js_sys::Reflect::get(&object, &"storyboards".into()).unwrap();
-        object = js_sys::Reflect::get(&object, &"playerStoryboardSpecRenderer".into()).unwrap();
-        object = js_sys::Reflect::get(&object, &"spec".into()).unwrap();
-        let value = object.as_string().unwrap();
+        let object = JsFuture::from(response.json().unwrap()).await.unwrap();
+        let mut value = js_sys::Reflect::get(&object, &2.into()).unwrap();
+        value = js_sys::Reflect::get(&value, &"playerResponse".into()).unwrap();
+        value = js_sys::Reflect::get(&value, &"storyboards".into()).unwrap();
+        value = js_sys::Reflect::get(&value, &"playerStoryboardSpecRenderer".into()).unwrap();
+        value = js_sys::Reflect::get(&value, &"spec".into()).unwrap();
+        let value = value.as_string().unwrap();
+
+        fn get_game_name(object: &JsValue) -> Option<String> {
+            let mut game_name: JsValue = js_sys::Reflect::get(&object, &3.into()).ok()?;
+            game_name = js_sys::Reflect::get(&game_name, &"response".into()).ok()?;
+            game_name = js_sys::Reflect::get(&game_name, &"contents".into()).ok()?;
+            game_name = js_sys::Reflect::get(&game_name, &"twoColumnWatchNextResults".into()).ok()?;
+            game_name = js_sys::Reflect::get(&game_name, &"results".into()).ok()?;
+            game_name = js_sys::Reflect::get(&game_name, &"results".into()).ok()?;
+            game_name = js_sys::Reflect::get(&game_name, &"contents".into()).ok()?;
+            game_name = js_sys::Reflect::get(&game_name, &1.into()).ok()?;
+            game_name = js_sys::Reflect::get(&game_name, &"videoSecondaryInfoRenderer".into()).ok()?;
+            game_name = js_sys::Reflect::get(&game_name, &"metadataRowContainer".into()).ok()?;
+            game_name = js_sys::Reflect::get(&game_name, &"metadataRowContainerRenderer".into()).ok()?;
+            game_name = js_sys::Reflect::get(&game_name, &"rows".into()).ok()?;
+            game_name = js_sys::Reflect::get(&game_name, &0.into()).ok()?;
+            game_name = js_sys::Reflect::get(&game_name, &"richMetadataRowRenderer".into()).ok()?;
+            game_name = js_sys::Reflect::get(&game_name, &"contents".into()).ok()?;
+            game_name = js_sys::Reflect::get(&game_name, &0.into()).ok()?;
+            game_name = js_sys::Reflect::get(&game_name, &"richMetadataRenderer".into()).ok()?;
+            game_name = js_sys::Reflect::get(&game_name, &"title".into()).ok()?;
+            game_name = js_sys::Reflect::get(&game_name, &"simpleText".into()).ok()?;
+            game_name.as_string()
+        }
+
+        if get_game_name(&object) != Some("Among Us".to_string()) {
+            return None;
+        }
 
         ytimg::parse_value(value).unwrap()
     };
@@ -366,12 +393,15 @@ pub async fn get_images(loaded: bool) -> (Vec<(std::ops::Range<usize>, bool)>, u
         .write_1(&html.into_string())
         .unwrap();
 
-    (games, images.len())
+    Some((games, images.len()))
 }
 
 pub async fn run(loaded: bool) {
     log!("running...");
-    let (games, lenght) = get_images(loaded).await;
+    let (games, lenght) = match get_images(loaded).await {
+        Some(v) => v,
+        None => return
+    };
     let window = window().unwrap();
     let container = loop {
         match window
@@ -411,15 +441,11 @@ pub async fn main() {
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
     log!("Hello World!");
 
-    let mut launched = false;
     let window2 = window().unwrap();
     let mut last_url = window2.location().href().unwrap();
     if last_url.starts_with("https://www.youtube.com/watch?v=") {
         wasm_bindgen_futures::spawn_local(async move {
-            if !launched {
-                launched = true;
-                run(true).await;
-            }
+            run(true).await;
         });
     }
     let closure = Closure::wrap(Box::new(move |_event: web_sys::Event| {
@@ -430,10 +456,7 @@ pub async fn main() {
                 && last_url.contains("ab_channel")
             {
                 wasm_bindgen_futures::spawn_local(async move {
-                    if !launched {
-                        launched = true;
-                        run(false).await;
-                    }
+                    run(false).await;
                 });
             }
         }
