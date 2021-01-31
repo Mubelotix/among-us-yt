@@ -236,6 +236,16 @@ pub async fn get_images(loaded: bool) -> Option<(Vec<(std::ops::Range<usize>, bo
         games.push((start..images.len(), ratio > 0.6));
     }
 
+    let mut too_short_games = Vec::new();
+    for (idx, (range, _)) in games.iter().enumerate() {
+        if range.end - range.start <= 2 {
+            too_short_games.insert(0, idx);
+        }
+    }
+    for idx in too_short_games {
+        games.remove(idx);
+    }
+
     #[cfg(feature = "debugging")]
     display_debugging_data(&images, &games);
 
