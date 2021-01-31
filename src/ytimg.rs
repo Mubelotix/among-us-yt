@@ -47,7 +47,7 @@ impl Endpoint {
             .dyn_into()
             .unwrap();
 
-        let url = Url::create_object_url_with_blob(&blob).unwrap(); // FIXME: revoke object url
+        let url = Url::create_object_url_with_blob(&blob).unwrap();
         let document = window.document().unwrap();
         let img: HtmlImageElement = document.create_element("img").unwrap().dyn_into().unwrap();
         img.set_src(&url);
@@ -92,6 +92,11 @@ impl Endpoint {
                 images.push(Image::new(data));
             }
         }
+
+        // Clear created data
+        img.remove();
+        canvas.remove();
+        Url::revoke_object_url(&url).unwrap();
 
         Ok(images)
     }
