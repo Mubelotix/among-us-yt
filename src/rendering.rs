@@ -57,6 +57,22 @@ pub fn update_flex_font() {
     }
 }
 
+pub async fn remove_previous_display() {
+    let window = window().unwrap();
+    let container = loop {
+        match window
+            .document()
+            .unwrap()
+            .get_elements_by_class_name("ytp-progress-bar-padding")
+            .item(0)
+        {
+            Some(container) => break container,
+            None => sleep(std::time::Duration::from_millis(100)).await,
+        }
+    };
+    container.set_inner_html("");
+}
+
 pub async fn display_loading_state() {
     let window = window().unwrap();
     let container = loop {
@@ -67,7 +83,7 @@ pub async fn display_loading_state() {
             .item(0)
         {
             Some(container) => break container,
-            None => sleep(std::time::Duration::from_millis(200)).await,
+            None => sleep(std::time::Duration::from_millis(100)).await,
         }
     };
 

@@ -40,6 +40,7 @@ pub async fn get_images(loaded: bool) -> Option<(Vec<(std::ops::Range<usize>, bo
 
         (yt_initial_player_response, yt_initial_data)
     } else {
+        remove_previous_display().await;
         let mut url = window().unwrap().location().href().unwrap();
         let start = url.find("watch?v=").unwrap();
         url.replace_range(..start + 8, "");
