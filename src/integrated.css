@@ -13,6 +13,7 @@
     font-size: 2rem;
     line-height: calc(2rem + 4px);
     position: absolute;
+    overflow: hidden;
 }
 
 .impostor_game {

@@ -2,13 +2,15 @@ use crate::{util::sleep, ytimg::Image};
 use web_sys::*;
 use std::ops::Range;
 use maud::PreEscaped;
+use wasm_bindgen::JsCast;
 
 pub async fn display_bar(lenght: usize, games: Vec<(Range<usize>, bool)>) {
     let window = window().unwrap();
+    let document = window
+        .document()
+        .unwrap();
     let container = loop {
-        match window
-            .document()
-            .unwrap()
+        match document
             .get_elements_by_class_name("ytp-progress-bar-padding")
             .item(0)
         {
@@ -23,11 +25,11 @@ pub async fn display_bar(lenght: usize, games: Vec<(Range<usize>, bool)>) {
         #among_us_addon_chapters {
             @for (game, is_impostor) in games.iter() {
                 @if *is_impostor {
-                    div.impostor_game style=(format!("left: {}%; width: calc({}% - 4px);", game.start as f64 * factor, (game.end - game.start) as f64 * factor)) {
+                    div.impostor_game.flex_font style=(format!("left: {}%; width: calc({}% - 4px);", game.start as f64 * factor, (game.end - game.start) as f64 * factor)) {
                         "Impostor"
                     }
                 } @else {
-                    div.crewmate_game style=(format!("left: {}%; width: calc({}% - 4px);", game.start as f64 * factor, (game.end - game.start) as f64 * factor)) {
+                    div.crewmate_game.flex_font style=(format!("left: {}%; width: calc({}% - 4px);", game.start as f64 * factor, (game.end - game.start) as f64 * factor)) {
                         "Crewmate"
                     }
                 }
@@ -36,6 +38,23 @@ pub async fn display_bar(lenght: usize, games: Vec<(Range<usize>, bool)>) {
         }
     };
     container.set_inner_html(&html.into_string());
+    update_flex_font();
+}
+
+pub fn update_flex_font() {
+    let divs = window().unwrap().document().unwrap().get_elements_by_class_name("flex_font");
+    for div in 0..divs.length() {
+        let div = divs.item(div).unwrap();
+        let width = div.client_width() - 10;
+        let font_size: f64 = width as f64 * 0.19;
+        let html_element: HtmlElement = div.dyn_into().unwrap();
+        let style = html_element.style();
+        if font_size >= 7.0 {
+            style.set_property("font-size", &format!("min({}px, 2rem)", font_size)).unwrap();
+        } else {
+            style.set_property("font-size", "0").unwrap();
+        }
+    }
 }
 
 pub async fn display_loading_state() {

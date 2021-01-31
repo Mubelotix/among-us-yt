@@ -274,7 +274,7 @@ pub async fn main() {
             run(true).await;
         });
     }
-    let closure = Closure::wrap(Box::new(move |_event: web_sys::Event| {
+    let closure = Closure::wrap(Box::new(move |_event: Event| {
         if window2.location().href().unwrap() != last_url {
             last_url = window2.location().href().unwrap();
             log!("url changed! to {}", last_url);
@@ -293,5 +293,11 @@ pub async fn main() {
             1000,
         )
         .unwrap();
+    closure.forget();
+
+    let closure = Closure::wrap(Box::new(move |_: Event| {
+        update_flex_font();
+    }) as Box<dyn FnMut(_)>);
+    window().unwrap().document().unwrap().add_event_listener_with_callback("fullscreenchange", closure.as_ref().unchecked_ref()).unwrap();
     closure.forget();
 }
