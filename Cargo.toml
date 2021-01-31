@@ -45,4 +45,5 @@ features = [
     "IdbTransaction",
     "IdbObjectStore",
     "CssStyleDeclaration",
+    "NodeList",
 ]

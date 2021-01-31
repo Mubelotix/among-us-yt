@@ -35,3 +35,12 @@
     position: relative;
     bottom: .5rem;
 }
+
+.among_us_settings_button {
+    filter: grayscale(1);
+}
+
+.among_us_settings_button>svg {
+    width: 80%;
+    padding: 10%;
+}

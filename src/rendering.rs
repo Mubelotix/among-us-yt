@@ -1,14 +1,12 @@
 use crate::{util::sleep, ytimg::Image};
-use web_sys::*;
-use std::ops::Range;
 use maud::PreEscaped;
+use std::ops::Range;
 use wasm_bindgen::JsCast;
+use web_sys::*;
 
 pub async fn display_bar(lenght: usize, games: Vec<(Range<usize>, bool)>) {
     let window = window().unwrap();
-    let document = window
-        .document()
-        .unwrap();
+    let document = window.document().unwrap();
     let container = loop {
         match document
             .get_elements_by_class_name("ytp-progress-bar-padding")
@@ -39,10 +37,28 @@ pub async fn display_bar(lenght: usize, games: Vec<(Range<usize>, bool)>) {
     };
     container.set_inner_html(&html.into_string());
     update_flex_font();
+
+    let ytp_right_controls = document
+        .query_selector(".ytp-right-controls")
+        .unwrap()
+        .unwrap();
+    let among_us_settings_button = document.create_element("button").unwrap();
+    among_us_settings_button
+        .set_attribute("class", "ytp-button among_us_settings_button")
+        .unwrap();
+    among_us_settings_button
+        .set_attribute("title", "Among Us Settings")
+        .unwrap();
+    among_us_settings_button.set_inner_html(include_str!("icon.svg"));
+    ytp_right_controls.insert_before(&among_us_settings_button, ytp_right_controls.child_nodes().item(4).as_ref()).unwrap();
 }
 
 pub fn update_flex_font() {
-    let divs = window().unwrap().document().unwrap().get_elements_by_class_name("flex_font");
+    let divs = window()
+        .unwrap()
+        .document()
+        .unwrap()
+        .get_elements_by_class_name("flex_font");
     for div in 0..divs.length() {
         let div = divs.item(div).unwrap();
         let width = div.client_width() - 10;
@@ -50,7 +66,9 @@ pub fn update_flex_font() {
         let html_element: HtmlElement = div.dyn_into().unwrap();
         let style = html_element.style();
         if font_size >= 7.0 {
-            style.set_property("font-size", &format!("min({}px, 2rem)", font_size)).unwrap();
+            style
+                .set_property("font-size", &format!("min({}px, 2rem)", font_size))
+                .unwrap();
         } else {
             style.set_property("font-size", "0").unwrap();
         }
