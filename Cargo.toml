@@ -46,4 +46,8 @@ features = [
     "IdbObjectStore",
     "CssStyleDeclaration",
     "NodeList",
+    "DomTokenList",
+    "MutationObserver",
+    "MutationObserverInit",
+    "MutationRecord",
 ]
