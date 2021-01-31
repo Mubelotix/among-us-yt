@@ -184,13 +184,13 @@ impl Image {
         image.alert = {
             let (r,g,b) = image.get_pixels_mean(0..160, 0..30);
             let diff = r as i32 - (g as i32 + b as i32);
-            if r >= 110 && diff > -40 {
+            if r >= 105 && diff > -40 {
                 let (r,g,b) = image.get_pixels_mean(0..160, 30..60);
                 let diff = r as i32 - (g as i32 + b as i32);
-                if r >= 110 && diff > -40 {
+                if r >= 105 && diff > -40 {
                     let (r,g,b) = image.get_pixels_mean(0..160, 60..90);
                     let diff = r as i32 - (g as i32 + b as i32);
-                    r >= 110 && diff > -40
+                    r >= 105 && diff > -40
                 } else {
                     false
                 }
@@ -200,7 +200,7 @@ impl Image {
         };
         image.progress_bar = !image.council && (image.does_pixels_mean_match(2..12, 3..6, 0x72a072, 20) || (image.does_pixels_mean_match(64..71, 3..6, 0x353d38, 20) && image.does_pixels_mean_match(64..71, 2..3, 0x989ca5, 50)));
         image.game_settings = !image.is_game() && image.does_pixels_mean_match(1..17, 3..68, 0x484949, 15);
-        image.victory_screen = !image.is_game() && image.does_pixels_mean_match(49..111, 12..21, 0x163150, 10) && image.does_pixels_mean_match(40..120, 25..41, 0x000000, 10);
+        image.victory_screen = !image.is_game() && image.does_pixels_mean_match(49..111, 12..21, 0x163150, 16) && image.does_pixels_mean_match(40..120, 25..41, 0x000000, 10);
         image.defeat_screen = !image.is_game() && image.does_pixels_mean_match(53..105, 9..23, 0x470c10, 10) && image.does_pixels_mean_match(40..120, 25..41, 0x090807, 10);
 
         #[cfg(feature="debugging")]
