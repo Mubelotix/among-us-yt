@@ -33,7 +33,7 @@ pub async fn get_images(loaded: bool) -> Option<(Vec<(std::ops::Range<usize>, bo
 
         let idx_start = html.find("var ytInitialData = {").unwrap() + 20;
         let idx_end = html[idx_start..]
-            .find(";</script><script nonce=\"")
+            .find(";</script><")
             .unwrap();
         let yt_initial_data = html[idx_start..idx_start + idx_end].to_string();
         let yt_initial_data = parse_json(yt_initial_data).unwrap();
@@ -157,10 +157,11 @@ pub async fn get_images(loaded: bool) -> Option<(Vec<(std::ops::Range<usize>, bo
         (yt_initial_player_response, yt_initial_data)
     };
 
-    if get_game_name(&yt_initial_player_response) != Some("Among Us".to_string()) {
+    if get_game_name(&yt_initial_data) != Some("Among Us".to_string()) {
+        log!("cancelled {:?}", yt_initial_data);
         return None;
     }
-    let endpoints = ytimg::parse_value(get_storyboard(yt_initial_data).unwrap()).unwrap();
+    let endpoints = ytimg::parse_value(get_storyboard(yt_initial_player_response).unwrap()).unwrap();
 
     log!("Status confirmed: {:?}", endpoints);
 

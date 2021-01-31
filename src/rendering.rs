@@ -1,7 +1,7 @@
 use crate::{util::sleep, ytimg::Image};
 use web_sys::*;
-use wasm_bindgen::JsCast;
 use std::ops::Range;
+use maud::PreEscaped;
 
 pub async fn display_bar(lenght: usize, games: Vec<(Range<usize>, bool)>) {
     let window = window().unwrap();
@@ -19,7 +19,7 @@ pub async fn display_bar(lenght: usize, games: Vec<(Range<usize>, bool)>) {
     let factor: f64 = 100.0 / lenght as f64;
 
     let html = maud::html! {
-        style { (include_str!("integrated.css")) }
+        style { (PreEscaped(include_str!("integrated.css"))) }
         #among_us_addon_chapters {
             @for (game, is_impostor) in games.iter() {
                 @if *is_impostor {
@@ -43,7 +43,7 @@ pub fn display_debugging_data(images: &[Image], games: &[(Range<usize>, bool)]) 
     let html = maud::html! {
         head {
             title { "Video Analys Report" }
-            style { (include_str!("debugging.css")) }
+            style { (PreEscaped(include_str!("debugging.css"))) }
         }
         body {
             main {
@@ -128,7 +128,6 @@ pub fn display_debugging_data(images: &[Image], games: &[(Range<usize>, bool)]) 
         }
     };
 
-    #[cfg(feature = "debugging")]
     window()
         .unwrap()
         .open_with_url("about:blank")
@@ -136,8 +135,7 @@ pub fn display_debugging_data(images: &[Image], games: &[(Range<usize>, bool)]) 
         .unwrap()
         .document()
         .unwrap()
-        .dyn_into::<HtmlDocument>()
+        .document_element()
         .unwrap()
-        .write_1(&html.into_string())
-        .unwrap();
+        .set_inner_html(&html.into_string());
 }
