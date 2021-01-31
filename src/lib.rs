@@ -12,6 +12,8 @@ use yt_format::*;
 use rendering::*;
 
 pub async fn get_images(loaded: bool) -> Option<(Vec<(std::ops::Range<usize>, bool)>, usize)> {
+    display_loading_state().await;
+
     let (yt_initial_player_response, yt_initial_data) = if loaded {
         let document = window()
             .unwrap()

@@ -28,3 +28,9 @@
     color: rgb(141, 255, 255);
     background-color: rgba(22, 37, 37, 0.9);
 }
+
+#among_us_addon_loading {
+    font-size: 1.5rem;
+    position: relative;
+    bottom: .5rem;
+}

@@ -38,6 +38,29 @@ pub async fn display_bar(lenght: usize, games: Vec<(Range<usize>, bool)>) {
     container.set_inner_html(&html.into_string());
 }
 
+pub async fn display_loading_state() {
+    let window = window().unwrap();
+    let container = loop {
+        match window
+            .document()
+            .unwrap()
+            .get_elements_by_class_name("ytp-progress-bar-padding")
+            .item(0)
+        {
+            Some(container) => break container,
+            None => sleep(std::time::Duration::from_millis(200)).await,
+        }
+    };
+
+    let html = maud::html! {
+        style { (PreEscaped(include_str!("integrated.css"))) }
+        #among_us_addon_loading {
+            "Among Us Youtube Extension : Loading video..."
+        }
+    };
+    container.set_inner_html(&html.into_string());
+}
+
 #[cfg(feature = "debugging")]
 pub fn display_debugging_data(images: &[Image], games: &[(Range<usize>, bool)]) {
     let html = maud::html! {
