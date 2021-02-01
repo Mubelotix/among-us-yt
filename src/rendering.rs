@@ -142,10 +142,14 @@ pub async fn display_bar(lenght: usize, games: Vec<(Range<usize>, bool)>) {
         .unwrap();
 
     let state = std::rc::Rc::new(std::cell::Cell::new(false));
+
+    let body = document.body().unwrap();
     let closure = Closure::wrap(Box::new(move |event: Event| {
-        if among_us_settings_button.contains(event.target().map(|e| e.dyn_into().unwrap()).as_ref())
-        {
+        let target = event.target().unwrap().dyn_into().unwrap();
+        if among_us_settings_button.contains(Some(&target)) {
             state.set(!state.get());
+        } else if among_us_settings_menu.contains(Some(&target)) || !body.contains(Some(&target)) {
+            return;
         } else {
             state.set(false);
         }
@@ -176,6 +180,68 @@ pub async fn display_bar(lenght: usize, games: Vec<(Range<usize>, bool)>) {
         });
     }) as Box<dyn FnMut(_)>);
     window
+        .add_event_listener_with_callback("click", closure.as_ref().unchecked_ref())
+        .unwrap();
+    closure.forget();
+
+    let speed_selector = document
+        .query_selector(
+            "#among_us_settings_menu>.ytp-panel>.ytp-panel-menu>.ytp-menuitem:nth-child(2)",
+        )
+        .unwrap()
+        .unwrap();
+    let closure = Closure::wrap(Box::new(move |event: Event| {
+        wasm_bindgen_futures::spawn_local(async move {
+            let settings_menu = web_sys::window()
+                .unwrap()
+                .document()
+                .unwrap()
+                .query_selector("#among_us_settings_menu")
+                .unwrap()
+                .unwrap();
+
+            settings_menu.set_inner_html(r#"<div class="ytp-panel" style="min-width: 250px; width: 349px; height: 177px;"><div class="ytp-panel-menu" role="menu" style="height: 177px;"><div class="ytp-menuitem" role="menuitemcheckbox" aria-checked="true" tabindex="0"><div class="ytp-menuitem-icon"></div><div class="ytp-menuitem-label">Anmerkungen</div><div class="ytp-menuitem-content"><div class="ytp-menuitem-toggle-checkbox"></div></div></div><div class="ytp-menuitem" aria-haspopup="true" role="menuitem" tabindex="0"><div class="ytp-menuitem-icon"></div><div class="ytp-menuitem-label">Wiedergabegeschwindigkeit</div><div class="ytp-menuitem-content">Standard</div></div><div class="ytp-menuitem" aria-haspopup="true" role="menuitem" tabindex="0"><div class="ytp-menuitem-icon"></div><div class="ytp-menuitem-label"><div><span>Untertitel</span><span class="ytp-menuitem-label-count"> (1)</span></div></div><div class="ytp-menuitem-content">Aus</div></div><div class="ytp-menuitem" aria-haspopup="true" role="menuitem" tabindex="0"><div class="ytp-menuitem-icon"></div><div class="ytp-menuitem-label">Qualität</div><div class="ytp-menuitem-content"><div><span>Automatisch</span> <span class="ytp-menu-label-secondary">480p</span></div></div></div></div></div><div class="ytp-panel ytp-panel-animate-forward" style="min-width: 250px; width: 258px; height: 154px;"><div class="ytp-panel-header"><button class="ytp-button ytp-panel-options">Optionen</button><button class="ytp-button ytp-panel-title">Untertitel</button></div><div class="ytp-panel-menu" role="menu" style="height: 97px;"><div class="ytp-menuitem" tabindex="0" role="menuitemradio" aria-checked="true"><div class="ytp-menuitem-label">Aus</div></div><div class="ytp-menuitem" tabindex="0" role="menuitemradio"><div class="ytp-menuitem-label">Französisch (automatisch erzeugt)</div></div></div></div>"#);
+            sleep(std::time::Duration::from_millis(20)).await;
+            settings_menu
+                .class_list()
+                .add_1("ytp-popup-animating")
+                .unwrap();
+            settings_menu
+                .first_element_child()
+                .unwrap()
+                .class_list()
+                .add_1("ytp-panel-animate-back")
+                .unwrap();
+            settings_menu
+                .last_element_child()
+                .unwrap()
+                .class_list()
+                .remove_1("ytp-panel-animate-forward")
+                .unwrap();
+            sleep(std::time::Duration::from_millis(250)).await;
+            settings_menu
+                .class_list()
+                .remove_1("ytp-popup-animating")
+                .unwrap();
+            settings_menu.set_inner_html(
+                r#"<div class="ytp-panel" style="min-width: 250px; width: 258px; height: 154px;">
+                <div class="ytp-panel-header">
+                    <button class="ytp-button ytp-panel-options">Optionen</button>
+                    <button class="ytp-button ytp-panel-title">Untertitel</button>
+                </div>
+                <div class="ytp-panel-menu" role="menu" style="height: 97px;">
+                    <div class="ytp-menuitem" tabindex="0" role="menuitemradio" aria-checked="true">
+                        <div class="ytp-menuitem-label">Aus</div>
+                    </div>
+                    <div class="ytp-menuitem" tabindex="0" role="menuitemradio">
+                        <div class="ytp-menuitem-label">Französisch (automatisch erzeugt)</div>
+                    </div>
+                </div>
+            </div>"#,
+            );
+        });
+    }) as Box<dyn FnMut(_)>);
+    speed_selector
         .add_event_listener_with_callback("click", closure.as_ref().unchecked_ref())
         .unwrap();
     closure.forget();
