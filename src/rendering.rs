@@ -15,23 +15,39 @@ pub async fn display_bar(lenght: usize, games: Vec<(Range<usize>, bool)>) {
         .unwrap();
 
     let closure = Closure::wrap(Box::new(move |events: js_sys::Array, _init| {
-        for event in events.iter().filter_map(|e| e.dyn_into::<MutationRecord>().ok()) {
+        for event in events
+            .iter()
+            .filter_map(|e| e.dyn_into::<MutationRecord>().ok())
+        {
             let target: HtmlElement = event.target().unwrap().dyn_into().unwrap();
 
             if let Some(name) = event.attribute_name() {
                 let new_value = target.get_attribute(&name);
-                log!("in {} value of {} changed from {:?} to {:?}", target.class_name(), name, match event.old_value() {
-                    Some(ref value) => value.as_str(),
-                    None => "{None}"
-                }, match new_value {
-                    Some(ref value) => value.as_str(),
-                    None => "{None}"
-                });
+                log!(
+                    "{} in {:?}: {}\n{:?}\n{:?}",
+                    event.type_().to_uppercase(),
+                    target.class_name(),
+                    name,
+                    match event.old_value() {
+                        Some(ref value) => value.as_str(),
+                        None => "{None}",
+                    },
+                    match new_value {
+                        Some(ref value) => value.as_str(),
+                        None => "{None}",
+                    }
+                );
             } else {
-                log!("mutation {} in {}", event.type_(), target.class_name());
+                log!(
+                    "{} in {:?}:\n{}",
+                    event.type_().to_uppercase(),
+                    target.class_name(),
+                    target.inner_html()
+                );
             }
         }
-    }) as Box<dyn FnMut(js_sys::Array,MutationObserverInit)>);
+    })
+        as Box<dyn FnMut(js_sys::Array, MutationObserverInit)>);
 
     // create an observer instance
     let observer = MutationObserver::new(closure.as_ref().unchecked_ref()).unwrap();
@@ -44,7 +60,9 @@ pub async fn display_bar(lenght: usize, games: Vec<(Range<usize>, bool)>) {
         .attribute_old_value(true)
         .attributes(true)
         .character_data(true)
-        .character_data_old_value(true);
+        .character_data_old_value(true)
+        .child_list(true)
+        .subtree(true);
 
     // pass in the target node, as well as the observer options
     observer.observe_with_options(&target, &config).unwrap();
@@ -85,85 +103,82 @@ pub async fn display_bar(lenght: usize, games: Vec<(Range<usize>, bool)>) {
     if document
         .query_selector("#among_us_settings_menu")
         .unwrap()
-        .is_none()
+        .is_some()
     {
-        let movie_player = document.get_element_by_id("movie_player").unwrap();
-        let among_us_settings_menu = document.create_element("div").unwrap();
-        among_us_settings_menu
-            .set_attribute("class", "ytp-popup ytp-settings-menu")
-            .unwrap();
-        among_us_settings_menu
-            .set_attribute("id", "among_us_settings_menu")
-            .unwrap();
-        among_us_settings_menu
-            .set_attribute("style", "display: none;")
-            .unwrap();
-        among_us_settings_menu.set_inner_html(r#"<div class="ytp-panel"><div class="ytp-panel-menu" role="menu"><div class="ytp-menuitem" role="menuitemcheckbox" aria-checked="true" tabindex="0"><div class="ytp-menuitem-icon"></div><div class="ytp-menuitem-label">Annotations</div><div class="ytp-menuitem-content"><div class="ytp-menuitem-toggle-checkbox"></div></div></div><div class="ytp-menuitem" aria-haspopup="true" role="menuitem" tabindex="0"><div class="ytp-menuitem-icon"></div><div class="ytp-menuitem-label">Vitesse de lecture</div><div class="ytp-menuitem-content">Normale</div></div><div class="ytp-menuitem" aria-haspopup="true" role="menuitem" tabindex="0"><div class="ytp-menuitem-icon"></div><div class="ytp-menuitem-label"><div><span>Sous-titres</span><span class="ytp-menuitem-label-count"> (1)</span></div></div><div class="ytp-menuitem-content">Désactivés</div></div><div class="ytp-menuitem" aria-haspopup="true" role="menuitem" tabindex="0"><div class="ytp-menuitem-icon"></div><div class="ytp-menuitem-label">Qualité</div><div class="ytp-menuitem-content"><div><span>144p</span></div></div></div></div></div>"#);
-        movie_player.append_child(&among_us_settings_menu).unwrap();
+        return;
     }
 
-    if document
-        .query_selector(".among_us_settings_button")
+    let movie_player = document.get_element_by_id("movie_player").unwrap();
+    let among_us_settings_menu = document.create_element("div").unwrap();
+    among_us_settings_menu
+        .set_attribute("class", "ytp-popup ytp-settings-menu")
+        .unwrap();
+    among_us_settings_menu
+        .set_attribute("id", "among_us_settings_menu")
+        .unwrap();
+    among_us_settings_menu
+        .set_attribute("style", "display: none;")
+        .unwrap();
+    among_us_settings_menu.set_inner_html(r#"<div class="ytp-panel"><div class="ytp-panel-menu" role="menu"><div class="ytp-menuitem" role="menuitemcheckbox" aria-checked="true" tabindex="0"><div class="ytp-menuitem-icon"></div><div class="ytp-menuitem-label">Annotations</div><div class="ytp-menuitem-content"><div class="ytp-menuitem-toggle-checkbox"></div></div></div><div class="ytp-menuitem" aria-haspopup="true" role="menuitem" tabindex="0"><div class="ytp-menuitem-icon"></div><div class="ytp-menuitem-label">Vitesse de lecture</div><div class="ytp-menuitem-content">Normale</div></div><div class="ytp-menuitem" aria-haspopup="true" role="menuitem" tabindex="0"><div class="ytp-menuitem-icon"></div><div class="ytp-menuitem-label"><div><span>Sous-titres</span><span class="ytp-menuitem-label-count"> (1)</span></div></div><div class="ytp-menuitem-content">Désactivés</div></div><div class="ytp-menuitem" aria-haspopup="true" role="menuitem" tabindex="0"><div class="ytp-menuitem-icon"></div><div class="ytp-menuitem-label">Qualité</div><div class="ytp-menuitem-content"><div><span>144p</span></div></div></div></div></div>"#);
+    movie_player.append_child(&among_us_settings_menu).unwrap();
+
+    let ytp_right_controls = document
+        .query_selector(".ytp-right-controls")
         .unwrap()
-        .is_none()
-    {
-        let ytp_right_controls = document
-            .query_selector(".ytp-right-controls")
-            .unwrap()
-            .unwrap();
-        let among_us_settings_button = document.create_element("button").unwrap();
-        among_us_settings_button
-            .set_attribute("class", "ytp-button among_us_settings_button")
-            .unwrap();
-        among_us_settings_button
-            .set_attribute("title", "Among Us Settings")
-            .unwrap();
-        among_us_settings_button.set_inner_html(include_str!("icon.svg"));
-        ytp_right_controls
-            .insert_before(
-                &among_us_settings_button,
-                ytp_right_controls.child_nodes().item(4).as_ref(),
-            )
-            .unwrap();
+        .unwrap();
+    let among_us_settings_button = document.create_element("button").unwrap();
+    among_us_settings_button
+        .set_attribute("class", "ytp-button among_us_settings_button")
+        .unwrap();
+    among_us_settings_button
+        .set_attribute("title", "Among Us Settings")
+        .unwrap();
+    among_us_settings_button.set_inner_html(include_str!("icon.svg"));
+    ytp_right_controls
+        .insert_before(
+            &among_us_settings_button,
+            ytp_right_controls.child_nodes().item(4).as_ref(),
+        )
+        .unwrap();
 
-        let state = std::rc::Rc::new(std::cell::Cell::new(false));
-        let closure = Closure::wrap(Box::new(move |event: Event| {
-            if among_us_settings_button
-                .contains(event.target().map(|e| e.dyn_into().unwrap()).as_ref())
-            {
-                state.set(!state.get());
-            } else {
-                state.set(false);
-            }
+    let state = std::rc::Rc::new(std::cell::Cell::new(false));
+    let closure = Closure::wrap(Box::new(move |event: Event| {
+        if among_us_settings_button.contains(event.target().map(|e| e.dyn_into().unwrap()).as_ref())
+        {
+            state.set(!state.get());
+        } else {
+            state.set(false);
+        }
 
-            let state2 = std::rc::Rc::clone(&state);
-            wasm_bindgen_futures::spawn_local(async move {
-                let element = web_sys::window()
-                    .unwrap()
-                    .document()
-                    .unwrap()
-                    .query_selector("#among_us_settings_menu")
-                    .unwrap()
+        let state2 = std::rc::Rc::clone(&state);
+        wasm_bindgen_futures::spawn_local(async move {
+            let element = web_sys::window()
+                .unwrap()
+                .document()
+                .unwrap()
+                .query_selector("#among_us_settings_menu")
+                .unwrap()
+                .unwrap();
+
+            if state2.get() {
+                element.set_attribute("aria-hidden", "true").unwrap();
+                element
+                    .set_attribute("style", "width: 349px; height: 177px;")
                     .unwrap();
-
-                if state2.get() {
-                    element.set_attribute("aria-hidden", "true").unwrap();
-                    element.set_attribute("style", "width: 349px; height: 177px;").unwrap();
-                    sleep(std::time::Duration::from_millis(10)).await;
-                    element.remove_attribute("aria-hidden").unwrap();
-                } else {
-                    element.set_attribute("aria-hidden", "true").unwrap();
-                    sleep(std::time::Duration::from_millis(90)).await;
-                    element.set_attribute("style", "display: none;").unwrap();
-                    element.remove_attribute("aria-hidden").unwrap();
-                }
-            });
-        }) as Box<dyn FnMut(_)>);
-        window
-            .add_event_listener_with_callback("click", closure.as_ref().unchecked_ref())
-            .unwrap();
-        closure.forget();
-    }
+                sleep(std::time::Duration::from_millis(10)).await;
+                element.remove_attribute("aria-hidden").unwrap();
+            } else {
+                element.set_attribute("aria-hidden", "true").unwrap();
+                sleep(std::time::Duration::from_millis(90)).await;
+                element.set_attribute("style", "display: none;").unwrap();
+                element.remove_attribute("aria-hidden").unwrap();
+            }
+        });
+    }) as Box<dyn FnMut(_)>);
+    window
+        .add_event_listener_with_callback("click", closure.as_ref().unchecked_ref())
+        .unwrap();
+    closure.forget();
 }
 
 pub fn update_flex_font() {
