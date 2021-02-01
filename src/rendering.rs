@@ -108,6 +108,7 @@ pub async fn display_bar(lenght: usize, games: Vec<(Range<usize>, bool)>) {
         return;
     }
 
+    // Create the settings menu
     let movie_player = document.get_element_by_id("movie_player").unwrap();
     let among_us_settings_menu = document.create_element("div").unwrap();
     among_us_settings_menu
@@ -122,6 +123,7 @@ pub async fn display_bar(lenght: usize, games: Vec<(Range<usize>, bool)>) {
     among_us_settings_menu.set_inner_html(r#"<div class="ytp-panel"><div class="ytp-panel-menu" role="menu"><div class="ytp-menuitem" role="menuitemcheckbox" aria-checked="true" tabindex="0"><div class="ytp-menuitem-icon"></div><div class="ytp-menuitem-label">Annotations</div><div class="ytp-menuitem-content"><div class="ytp-menuitem-toggle-checkbox"></div></div></div><div class="ytp-menuitem" aria-haspopup="true" role="menuitem" tabindex="0"><div class="ytp-menuitem-icon"></div><div class="ytp-menuitem-label">Vitesse de lecture</div><div class="ytp-menuitem-content">Normale</div></div><div class="ytp-menuitem" aria-haspopup="true" role="menuitem" tabindex="0"><div class="ytp-menuitem-icon"></div><div class="ytp-menuitem-label"><div><span>Sous-titres</span><span class="ytp-menuitem-label-count"> (1)</span></div></div><div class="ytp-menuitem-content">Désactivés</div></div><div class="ytp-menuitem" aria-haspopup="true" role="menuitem" tabindex="0"><div class="ytp-menuitem-icon"></div><div class="ytp-menuitem-label">Qualité</div><div class="ytp-menuitem-content"><div><span>144p</span></div></div></div></div></div>"#);
     movie_player.append_child(&among_us_settings_menu).unwrap();
 
+    // Create the button in the bottom bar
     let ytp_right_controls = document
         .query_selector(".ytp-right-controls")
         .unwrap()
@@ -141,8 +143,8 @@ pub async fn display_bar(lenght: usize, games: Vec<(Range<usize>, bool)>) {
         )
         .unwrap();
 
+    // Handle button clicks
     let state = std::rc::Rc::new(std::cell::Cell::new(false));
-
     let body = document.body().unwrap();
     let closure = Closure::wrap(Box::new(move |event: Event| {
         let target = event.target().unwrap().dyn_into().unwrap();
@@ -184,6 +186,7 @@ pub async fn display_bar(lenght: usize, games: Vec<(Range<usize>, bool)>) {
         .unwrap();
     closure.forget();
 
+    // Handle submenu clicks
     let speed_selector = document
         .query_selector(
             "#among_us_settings_menu>.ytp-panel>.ytp-panel-menu>.ytp-menuitem:nth-child(2)",
