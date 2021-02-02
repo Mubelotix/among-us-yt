@@ -8,6 +8,7 @@ mod util;
 mod ytimg;
 mod yt_format;
 mod rendering;
+mod settings;
 use yt_format::*;
 use rendering::*;
 

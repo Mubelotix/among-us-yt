@@ -46,8 +46,8 @@
 }
 
 #among_us_settings_menu {
-    width: 349px;
-    height: 177px;
+    min-width: 250px;
+    min-height: 100px;
 }
 
 #among_us_settings_menu>div {

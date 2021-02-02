@@ -1,6 +1,6 @@
-use crate::{util::sleep, ytimg::Image};
-use maud::PreEscaped;
-use std::{ops::Range, time::Duration};
+use crate::{settings::*, util::sleep, ytimg::Image};
+use maud::{PreEscaped, Render};
+use std::ops::Range;
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::*;
 
@@ -120,8 +120,13 @@ pub async fn display_bar(lenght: usize, games: Vec<(Range<usize>, bool)>) {
     among_us_settings_menu
         .set_attribute("style", "display: none;")
         .unwrap();
-    among_us_settings_menu.set_inner_html(r#"<div class="ytp-panel"><div class="ytp-panel-menu" role="menu"><div class="ytp-menuitem" role="menuitemcheckbox" aria-checked="true" tabindex="0"><div class="ytp-menuitem-icon"></div><div class="ytp-menuitem-label">Annotations</div><div class="ytp-menuitem-content"><div class="ytp-menuitem-toggle-checkbox"></div></div></div><div class="ytp-menuitem" aria-haspopup="true" role="menuitem" tabindex="0"><div class="ytp-menuitem-icon"></div><div class="ytp-menuitem-label">Vitesse de lecture</div><div class="ytp-menuitem-content">Normale</div></div><div class="ytp-menuitem" aria-haspopup="true" role="menuitem" tabindex="0"><div class="ytp-menuitem-icon"></div><div class="ytp-menuitem-label"><div><span>Sous-titres</span><span class="ytp-menuitem-label-count"> (1)</span></div></div><div class="ytp-menuitem-content">Désactivés</div></div><div class="ytp-menuitem" aria-haspopup="true" role="menuitem" tabindex="0"><div class="ytp-menuitem-icon"></div><div class="ytp-menuitem-label">Qualité</div><div class="ytp-menuitem-content"><div><span>144p</span></div></div></div></div></div>"#);
+    let generate_comments_settings = CheckBox::new("amgus_ext_comments", "Generate comments", true);
+    let mut settings = Settings::new();
+    settings.add_setting(&generate_comments_settings);
+    among_us_settings_menu.set_inner_html(&settings.render().into_string());
     movie_player.append_child(&among_us_settings_menu).unwrap();
+    let settings_rc = std::rc::Rc::new(settings);
+    generate_comments_settings.enable(std::rc::Rc::clone(&settings_rc));
 
     // Create the button in the bottom bar
     let ytp_right_controls = document
@@ -187,7 +192,7 @@ pub async fn display_bar(lenght: usize, games: Vec<(Range<usize>, bool)>) {
     closure.forget();
 
     // Handle submenu clicks
-    let speed_selector = document
+    /*let speed_selector = document
         .query_selector(
             "#among_us_settings_menu>.ytp-panel>.ytp-panel-menu>.ytp-menuitem:nth-child(2)",
         )
@@ -249,7 +254,7 @@ pub async fn display_bar(lenght: usize, games: Vec<(Range<usize>, bool)>) {
     speed_selector
         .add_event_listener_with_callback("click", closure.as_ref().unchecked_ref())
         .unwrap();
-    closure.forget();
+    closure.forget();*/
 }
 
 pub fn update_flex_font() {
