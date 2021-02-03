@@ -4,6 +4,29 @@ use std::ops::Range;
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::*;
 
+#[derive(Clone, Copy)]
+enum Theme {
+    Default,
+}
+
+impl std::fmt::Display for Theme {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Theme::Default => write!(f, "Default"),
+        }
+    }
+}
+
+impl Choice for Theme {
+    fn enumerate_values() -> Vec<String> {
+        vec!["Default".to_string()]
+    }
+
+    fn select_value(s: &str) -> Self {
+        Theme::Default
+    }
+}
+
 pub async fn display_bar(lenght: usize, games: Vec<(Range<usize>, bool)>) {
     // select the target node
     let target = window()
@@ -120,13 +143,16 @@ pub async fn display_bar(lenght: usize, games: Vec<(Range<usize>, bool)>) {
     among_us_settings_menu
         .set_attribute("style", "display: none;")
         .unwrap();
-    let generate_comments_settings = CheckBox::new("amgus_ext_comments", "Generate comments", true);
+    let generate_comments_setting = CheckBox::new("amgus_ext_comments", "Generate comments", true);
+    let theme_setting = Selection::new("amgus_ext_theme", "Theme", Theme::Default);
     let mut settings = Settings::new();
-    settings.add_setting(&generate_comments_settings);
+    settings.add_setting(&generate_comments_setting);
+    settings.add_setting(&theme_setting);
     among_us_settings_menu.set_inner_html(&settings.render().into_string());
     movie_player.append_child(&among_us_settings_menu).unwrap();
     let settings_rc = std::rc::Rc::new(settings);
-    generate_comments_settings.enable(std::rc::Rc::clone(&settings_rc));
+    generate_comments_setting.enable(std::rc::Rc::clone(&settings_rc));
+    theme_setting.enable(std::rc::Rc::clone(&settings_rc));
 
     // Create the button in the bottom bar
     let ytp_right_controls = document
@@ -152,6 +178,7 @@ pub async fn display_bar(lenght: usize, games: Vec<(Range<usize>, bool)>) {
     let state = std::rc::Rc::new(std::cell::Cell::new(false));
     let body = document.body().unwrap();
     let closure = Closure::wrap(Box::new(move |event: Event| {
+        //let settings_rc = std::rc::Rc::clone(&settings_rc);
         let target = event.target().unwrap().dyn_into().unwrap();
         if among_us_settings_button.contains(Some(&target)) {
             state.set(!state.get());
@@ -173,6 +200,8 @@ pub async fn display_bar(lenght: usize, games: Vec<(Range<usize>, bool)>) {
 
             if state2.get() {
                 element.set_attribute("aria-hidden", "true").unwrap();
+                //among_us_settings_menu.set_inner_html(&(settings_rc.render().into_string()));
+
                 element
                     .set_attribute("style", "width: 349px; height: 177px;")
                     .unwrap();
