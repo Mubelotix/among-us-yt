@@ -4,23 +4,30 @@ use std::{cell::Cell, fmt::Display, rc::Rc};
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::*;
 
-pub struct Settings<'a> {
-    settings: Vec<&'a dyn Setting>,
+pub struct Settings {
+    settings: Vec<&'static dyn Setting>,
 }
 
-impl<'a> Settings<'a> {
-    pub fn new() -> Settings<'a> {
+impl Settings {
+    pub fn new() -> Settings {
         Settings {
             settings: Vec::new(),
         }
     }
 
-    pub fn add_setting(&mut self, setting: &'a dyn Setting) {
+    pub fn add_setting(&mut self, setting: &'static dyn Setting) {
         self.settings.push(setting)
+    }
+
+
+    pub fn enable(self_rc: Rc<Settings>) {
+        for setting in &self_rc.settings {
+            setting.enable(Rc::clone(&self_rc))
+        }
     }
 }
 
-impl<'a> Render for Settings<'a> {
+impl Render for Settings {
     fn render(&self) -> Markup {
         html! {
             .ytp-panel style="width: 349px; height: 177px;" {
