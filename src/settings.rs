@@ -145,7 +145,7 @@ impl<C: Choice + 'static> Setting for Selection<C> {
         let selected = Rc::clone(&self.selected);
         let label = self.label.clone();
 
-        fn handle_click_to_update_value<C: Choice + 'static>(
+        fn listen_click_to_update_value<C: Choice + 'static>(
             selected: Rc<Cell<C>>,
             node: Node,
             value: C,
@@ -161,6 +161,19 @@ impl<C: Choice + 'static> Setting for Selection<C> {
             closure.forget();
         };
 
+        fn listen_click_on_back_button(
+            settings: Rc<Settings>,
+        ) {
+            let button = web_sys::window().unwrap().document().unwrap().query_selector("#among_us_settings_menu > div > div.ytp-panel-header > button.ytp-button.ytp-panel-title").unwrap().unwrap();
+            let closure = Closure::wrap(Box::new(move |_: Event| {
+                let settings = Rc::clone(&settings);
+                wasm_bindgen_futures::spawn_local(async move { animate_back(settings).await });
+            }) as Box<dyn FnMut(_)>);
+            button.add_event_listener_with_callback("click", closure.as_ref().unchecked_ref())
+                .unwrap();
+            closure.forget();
+        };
+
         async fn animate_back(settings: Rc<Settings>) {
             let settings_menu = web_sys::window().unwrap().document().unwrap().query_selector("#among_us_settings_menu").unwrap().unwrap();
             let new_child = web_sys::window().unwrap().document().unwrap().create_element("div").unwrap();
@@ -168,13 +181,12 @@ impl<C: Choice + 'static> Setting for Selection<C> {
             let mut html = settings.render().into_string();
             html = html.replace("\"ytp-panel\"", "\"ytp-panel ytp-panel-animate-back\"");
             new_child.set_outer_html(&html);
-            //new_child.class_list().add_1("ytp-panel-animate-back").unwrap();
-            sleep(std::time::Duration::from_millis(20)).await;
 
+            settings_menu.class_list().add_1("ytp-popup-animating").unwrap();
             let scroll_height = settings_menu.last_element_child().unwrap().scroll_height();
             let height = std::cmp::min(scroll_height, 700);
-            settings_menu.set_attribute("style", &format!("height: {}px;", height)).unwrap();
-            settings_menu.class_list().add_1("ytp-popup-animating").unwrap();
+            settings_menu.clone().dyn_into::<HtmlElement>().unwrap().style().set_property("width", "349px").unwrap();
+            settings_menu.clone().dyn_into::<HtmlElement>().unwrap().style().set_property("height", &format!("{}px", height)).unwrap();
             settings_menu.first_element_child().unwrap().class_list().add_1("ytp-panel-animate-forward").unwrap();
             settings_menu.last_element_child().unwrap().class_list().remove_1("ytp-panel-animate-back").unwrap();
             sleep(std::time::Duration::from_millis(250)).await;
@@ -212,7 +224,7 @@ impl<C: Choice + 'static> Setting for Selection<C> {
             let selectable_items = web_sys::window().unwrap().document().unwrap().query_selector_all("#among_us_settings_menu > .ytp-panel-animate-forward > .ytp-panel-menu > .ytp-menuitem").unwrap();
             let mut i = 0;
             while let Some(item) = selectable_items.item(i) {
-                handle_click_to_update_value(
+                listen_click_to_update_value(
                     Rc::clone(&selected),
                     item,
                     values[i as usize],
@@ -220,13 +232,13 @@ impl<C: Choice + 'static> Setting for Selection<C> {
                 );
                 i += 1;
             }
-            sleep(std::time::Duration::from_millis(20)).await;
+            listen_click_on_back_button(settings);
 
-
+            settings_menu.class_list().add_1("ytp-popup-animating").unwrap();
             let scroll_height = settings_menu.last_element_child().unwrap().scroll_height();
             let height = std::cmp::min(scroll_height, 700);
-            settings_menu.set_attribute("style", &format!("height: {}px;", height)).unwrap();
-            settings_menu.class_list().add_1("ytp-popup-animating").unwrap();
+            settings_menu.clone().dyn_into::<HtmlElement>().unwrap().style().set_property("width", "250px").unwrap();
+            settings_menu.clone().dyn_into::<HtmlElement>().unwrap().style().set_property("height", &format!("{}px", height)).unwrap();
             settings_menu.first_element_child().unwrap().class_list().add_1("ytp-panel-animate-back").unwrap();
             settings_menu.last_element_child().unwrap().class_list().remove_1("ytp-panel-animate-forward").unwrap();
             sleep(std::time::Duration::from_millis(250)).await;

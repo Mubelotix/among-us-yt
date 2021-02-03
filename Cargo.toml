@@ -50,4 +50,5 @@ features = [
     "MutationObserver",
     "MutationObserverInit",
     "MutationRecord",
+    "CssStyleDeclaration",
 ]
