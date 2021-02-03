@@ -29,7 +29,7 @@ impl Settings {
 impl Render for Settings {
     fn render(&self) -> Markup {
         html! {
-            .ytp-panel style="width: 349px; height: 177px;" {
+            .ytp-panel {
                 .ytp-panel-menu role="menu" {
                     @for setting in self.settings.iter() {
                         (**setting)
@@ -135,43 +135,63 @@ impl<C: Choice> Render for Selection<C> {
 }
 
 impl<C: Choice + 'static> Setting for Selection<C> {
-    fn enable(&self, _settings: Rc<Settings>) {
+    fn enable(&self, settings: Rc<Settings>) {
         let window = window().unwrap();
         let document = window.document().unwrap();
-        let self_element = document
-            .query_selector(&format!(
+        let self_element = document.query_selector(&format!(
                 "#among_us_settings_menu>.ytp-panel>.ytp-panel-menu>#{}",
                 self.id
-            ))
-            .unwrap()
-            .unwrap();
+            )).unwrap().unwrap();
         let selected = Rc::clone(&self.selected);
         let label = self.label.clone();
 
-        fn handle_click_to_update_value<C: Choice + 'static>(selected: Rc<Cell<C>>, node: Node, value: C) {
+        fn handle_click_to_update_value<C: Choice + 'static>(
+            selected: Rc<Cell<C>>,
+            node: Node,
+            value: C,
+            settings: Rc<Settings>,
+        ) {
             let closure = Closure::wrap(Box::new(move |_: Event| {
                 selected.set(value);
+                let settings = Rc::clone(&settings);
+                wasm_bindgen_futures::spawn_local(async move { animate_back(settings).await });
             }) as Box<dyn FnMut(_)>);
             node.add_event_listener_with_callback("click", closure.as_ref().unchecked_ref())
                 .unwrap();
             closure.forget();
         };
 
-        async fn animate<C: Choice + 'static>(selected: Rc<Cell<C>>, label: String) {
-            let settings_menu = web_sys::window()
-                .unwrap()
-                .document()
-                .unwrap()
-                .query_selector("#among_us_settings_menu")
-                .unwrap()
-                .unwrap();
+        async fn animate_back(settings: Rc<Settings>) {
+            let settings_menu = web_sys::window().unwrap().document().unwrap().query_selector("#among_us_settings_menu").unwrap().unwrap();
+            let new_child = web_sys::window().unwrap().document().unwrap().create_element("div").unwrap();
+            settings_menu.append_child(&new_child).unwrap();
+            let mut html = settings.render().into_string();
+            html = html.replace("\"ytp-panel\"", "\"ytp-panel ytp-panel-animate-back\"");
+            new_child.set_outer_html(&html);
+            //new_child.class_list().add_1("ytp-panel-animate-back").unwrap();
+            sleep(std::time::Duration::from_millis(20)).await;
 
-            let new_child = web_sys::window()
-                .unwrap()
-                .document()
-                .unwrap()
-                .create_element("div")
-                .unwrap();
+            let scroll_height = settings_menu.last_element_child().unwrap().scroll_height();
+            let height = std::cmp::min(scroll_height, 700);
+            settings_menu.set_attribute("style", &format!("height: {}px;", height)).unwrap();
+            settings_menu.class_list().add_1("ytp-popup-animating").unwrap();
+            settings_menu.first_element_child().unwrap().class_list().add_1("ytp-panel-animate-forward").unwrap();
+            settings_menu.last_element_child().unwrap().class_list().remove_1("ytp-panel-animate-back").unwrap();
+            sleep(std::time::Duration::from_millis(250)).await;
+
+            settings_menu.class_list().remove_1("ytp-popup-animating").unwrap();
+            settings_menu.first_element_child().unwrap().remove();
+            Settings::enable(settings);
+        }
+
+        async fn animate_forward<C: Choice + 'static>(
+            selected: Rc<Cell<C>>,
+            label: String,
+            settings: Rc<Settings>,
+        ) {
+            let settings_menu = web_sys::window().unwrap().document().unwrap().query_selector("#among_us_settings_menu").unwrap().unwrap();
+
+            let new_child = web_sys::window().unwrap().document().unwrap().create_element("div").unwrap();
             settings_menu.append_child(&new_child).unwrap();
             let values = C::enumerate_values();
             new_child.set_outer_html(&html! {
@@ -189,65 +209,49 @@ impl<C: Choice + 'static> Setting for Selection<C> {
                     }
                 }
             }.into_string());
-            let selectable_items = web_sys::window()
-                .unwrap()
-                .document()
-                .unwrap()
-                .query_selector_all("#among_us_settings_menu > .ytp-panel-animate-forward > .ytp-panel-menu > .ytp-menuitem").unwrap();
+            let selectable_items = web_sys::window().unwrap().document().unwrap().query_selector_all("#among_us_settings_menu > .ytp-panel-animate-forward > .ytp-panel-menu > .ytp-menuitem").unwrap();
             let mut i = 0;
             while let Some(item) = selectable_items.item(i) {
-                handle_click_to_update_value(Rc::clone(&selected), item, values[i as usize]);
+                handle_click_to_update_value(
+                    Rc::clone(&selected),
+                    item,
+                    values[i as usize],
+                    Rc::clone(&settings),
+                );
                 i += 1;
             }
-
-            settings_menu
-                .set_attribute("style", "width: 349px; height: 177px;")
-                .unwrap();
             sleep(std::time::Duration::from_millis(20)).await;
+
+
             let scroll_height = settings_menu.last_element_child().unwrap().scroll_height();
             let height = std::cmp::min(scroll_height, 700);
-            settings_menu
-                .set_attribute("style", &format!("height: {}px;", height))
-                .unwrap();
-            settings_menu
-                .class_list()
-                .add_1("ytp-popup-animating")
-                .unwrap();
-            settings_menu
-                .first_element_child()
-                .unwrap()
-                .class_list()
-                .add_1("ytp-panel-animate-back")
-                .unwrap();
-            settings_menu
-                .last_element_child()
-                .unwrap()
-                .class_list()
-                .remove_1("ytp-panel-animate-forward")
-                .unwrap();
+            settings_menu.set_attribute("style", &format!("height: {}px;", height)).unwrap();
+            settings_menu.class_list().add_1("ytp-popup-animating").unwrap();
+            settings_menu.first_element_child().unwrap().class_list().add_1("ytp-panel-animate-back").unwrap();
+            settings_menu.last_element_child().unwrap().class_list().remove_1("ytp-panel-animate-forward").unwrap();
             sleep(std::time::Duration::from_millis(250)).await;
-            settings_menu
-                .class_list()
-                .remove_1("ytp-popup-animating")
-                .unwrap();
+
+            settings_menu.class_list().remove_1("ytp-popup-animating").unwrap();
             settings_menu.first_element_child().unwrap().remove();
-            settings_menu
-                .first_element_child()
-                .unwrap()
-                .class_list()
-                .remove_1("ytp-panel-animate-forward")
-                .unwrap();
+            settings_menu.first_element_child().unwrap().class_list().remove_1("ytp-panel-animate-forward").unwrap();
         }
 
-        fn spawn_animation_task<C: Choice + 'static>(selected: Rc<Cell<C>>, label: String) {
-            wasm_bindgen_futures::spawn_local(async move { animate(selected, label).await });
+        fn spawn_animation_task<C: Choice + 'static>(
+            selected: Rc<Cell<C>>,
+            label: String,
+            settings: Rc<Settings>,
+        ) {
+            wasm_bindgen_futures::spawn_local(async move {
+                animate_forward(selected, label, settings).await
+            });
         }
 
         let closure = Closure::wrap(Box::new(move |_: Event| {
             let selected = Rc::clone(&selected);
             let label = label.clone();
+            let settings = Rc::clone(&settings);
 
-            spawn_animation_task(selected, label);
+            spawn_animation_task(selected, label, settings);
         }) as Box<dyn FnMut(_)>);
         self_element
             .add_event_listener_with_callback("click", closure.as_ref().unchecked_ref())

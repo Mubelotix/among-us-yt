@@ -1,5 +1,8 @@
 {
     "rust-analyzer.cargo.features": [
         "debugging"
+    ],
+    "rust-analyzer.rustfmt.extraArgs": [
+        "chain_width = 110"
     ]
 }
