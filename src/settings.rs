@@ -102,28 +102,28 @@ impl<T: Display> Setting for CheckBox<T> {
     }
 }
 
-pub trait Choice: Display + Copy {
-    fn enumerate_values() -> Vec<String>;
+pub trait Choice: Display + Copy + PartialEq {
+    fn enumerate_values() -> Vec<Self>;
     fn select_value(s: &str) -> Self;
 }
 
-pub struct Selection<L: Display, C: Choice> {
+pub struct Selection<C: Choice> {
     id: &'static str,
-    label: L,
+    label: String,
     selected: Rc<Cell<C>>,
 }
 
-impl<L: Display, C: Choice> Selection<L, C> {
-    pub fn new(id: &'static str, label: L, selected: C) -> Selection<L, C> {
+impl<C: Choice> Selection<C> {
+    pub fn new<L: Display>(id: &'static str, label: L, selected: C) -> Selection<C> {
         Selection {
             id,
-            label,
+            label: label.to_string(),
             selected: Rc::new(Cell::new(selected)),
         }
     }
 }
 
-impl<L: Display, C: Choice> Render for Selection<L, C> {
+impl<C: Choice> Render for Selection<C> {
     fn render(&self) -> Markup {
         html! {
             .ytp-menuitem id=(self.id) aria-haspopup="true" role="menuitem" tabindex="0" {
@@ -135,7 +135,7 @@ impl<L: Display, C: Choice> Render for Selection<L, C> {
     }
 }
 
-impl<L: Display, C: Choice> Setting for Selection<L, C> {
+impl<C: Choice + 'static> Setting for Selection<C> {
     fn enable(&self, _settings: Rc<Settings>) {
         let window = window().unwrap();
         let document = window.document().unwrap();
@@ -146,8 +146,13 @@ impl<L: Display, C: Choice> Setting for Selection<L, C> {
             ))
             .unwrap()
             .unwrap();
+        let selected = Rc::clone(&self.selected);
+        let label = self.label.clone();
 
-        let closure = Closure::wrap(Box::new(move |event: Event| {
+        let closure = Closure::wrap(Box::new(move |_: Event| {
+            let selected = selected.get();
+            let label = label.clone();
+
             wasm_bindgen_futures::spawn_local(async move {
                 let settings_menu = web_sys::window()
                     .unwrap()
@@ -157,13 +162,32 @@ impl<L: Display, C: Choice> Setting for Selection<L, C> {
                     .unwrap()
                     .unwrap();
 
-                settings_menu.set_inner_html(r#"<div class="ytp-panel" style="min-width: 250px; width: 349px; height: 177px;"><div class="ytp-panel-menu" role="menu" style="height: 177px;"><div class="ytp-menuitem" role="menuitemcheckbox" aria-checked="true" tabindex="0"><div class="ytp-menuitem-icon"></div><div class="ytp-menuitem-label">Anmerkungen</div><div class="ytp-menuitem-content"><div class="ytp-menuitem-toggle-checkbox"></div></div></div><div class="ytp-menuitem" aria-haspopup="true" role="menuitem" tabindex="0"><div class="ytp-menuitem-icon"></div><div class="ytp-menuitem-label">Wiedergabegeschwindigkeit</div><div class="ytp-menuitem-content">Standard</div></div><div class="ytp-menuitem" aria-haspopup="true" role="menuitem" tabindex="0"><div class="ytp-menuitem-icon"></div><div class="ytp-menuitem-label"><div><span>Untertitel</span><span class="ytp-menuitem-label-count"> (1)</span></div></div><div class="ytp-menuitem-content">Aus</div></div><div class="ytp-menuitem" aria-haspopup="true" role="menuitem" tabindex="0"><div class="ytp-menuitem-icon"></div><div class="ytp-menuitem-label">Qualität</div><div class="ytp-menuitem-content"><div><span>Automatisch</span> <span class="ytp-menu-label-secondary">480p</span></div></div></div></div></div><div class="ytp-panel ytp-panel-animate-forward" style="min-width: 250px; width: 318px; height: 301px;"><div class="ytp-panel-header"><button class="ytp-button ytp-panel-options">Optionen</button><button class="ytp-button ytp-panel-title">Untertitel</button></div><div class="ytp-panel-menu" role="menu" style="height: 97px;"><div class="ytp-menuitem" tabindex="0" role="menuitemradio" aria-checked="true"><div class="ytp-menuitem-label">Aus</div></div><div class="ytp-menuitem" tabindex="0" role="menuitemradio"><div class="ytp-menuitem-label">Französisch (automatisch erzeugt)</div></div></div></div>"#);
+                let new_child = web_sys::window().unwrap().document().unwrap().create_element("div").unwrap();
+                settings_menu.append_child(&new_child).unwrap();
+                new_child.set_outer_html(&html! {
+                    .ytp-panel.ytp-panel-animate-forward {
+                        .ytp-panel-header {
+                            button .ytp-button.ytp-panel-options {} // Here you can but an option link
+                            button .ytp-button.ytp-panel-title {(label)}
+                        }
+                        .ytp-panel-menu role="menu" {
+                            @for item in C::enumerate_values() {
+                                .ytp-menuitem tabindex="0" role="menuitemradio" aria-checked=((item==selected).to_string()) {
+                                    .ytp-menuitem-label {(item)}
+                                }
+                            }
+                        }
+                    }
+                }.into_string());
+
                 settings_menu
                     .set_attribute("style", "width: 349px; height: 177px;")
                     .unwrap();
                 sleep(std::time::Duration::from_millis(20)).await;
+                let scroll_height = settings_menu.last_element_child().unwrap().scroll_height();
+                let height = std::cmp::min(scroll_height, 700);
                 settings_menu
-                    .set_attribute("style", "width: 258px; height: 154px;")
+                    .set_attribute("style", &format!("height: {}px;", height))
                     .unwrap();
                 settings_menu
                     .class_list()
@@ -186,22 +210,8 @@ impl<L: Display, C: Choice> Setting for Selection<L, C> {
                     .class_list()
                     .remove_1("ytp-popup-animating")
                     .unwrap();
-                settings_menu.set_inner_html(
-                        r#"<div class="ytp-panel" style="min-width: 250px; width: 258px; height: 154px;">
-                        <div class="ytp-panel-header">
-                            <button class="ytp-button ytp-panel-options">Optionen</button>
-                            <button class="ytp-button ytp-panel-title">Untertitel</button>
-                        </div>
-                        <div class="ytp-panel-menu" role="menu" style="height: 97px;">
-                            <div class="ytp-menuitem" tabindex="0" role="menuitemradio" aria-checked="true">
-                                <div class="ytp-menuitem-label">Aus</div>
-                            </div>
-                            <div class="ytp-menuitem" tabindex="0" role="menuitemradio">
-                                <div class="ytp-menuitem-label">Französisch (automatisch erzeugt)</div>
-                            </div>
-                        </div>
-                    </div>"#,
-                    );
+                settings_menu.first_element_child().unwrap().remove();
+                settings_menu.first_element_child().unwrap().class_list().remove_1("ytp-panel-animate-forward").unwrap();
             });
         }) as Box<dyn FnMut(_)>);
         self_element

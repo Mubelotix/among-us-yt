@@ -4,22 +4,26 @@ use std::{ops::Range, rc::Rc};
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::*;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 enum Theme {
     Default,
+    Light,
+    Dark,
 }
 
 impl std::fmt::Display for Theme {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Theme::Default => write!(f, "Default"),
+            Theme::Light => write!(f, "Light"),
+            Theme::Dark => write!(f, "Dark"),
         }
     }
 }
 
 impl Choice for Theme {
-    fn enumerate_values() -> Vec<String> {
-        vec!["Default".to_string()]
+    fn enumerate_values() -> Vec<Self> {
+        vec![Theme::Default, Theme::Light, Theme::Dark]
     }
 
     fn select_value(s: &str) -> Self {
